@@ -1,0 +1,10 @@
+[custom.all.concurrentDSL_v1]
+type = "local"
+path = "."
+ipkg = "concurrentDSL_v1.ipkg"
+test = "test/test.ipkg"
+
+[custom.all.concurrentDSL_v1-test]
+type = "local"
+path = "test"
+ipkg = "test.ipkg"
