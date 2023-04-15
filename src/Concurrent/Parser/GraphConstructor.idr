@@ -1,30 +1,30 @@
 module Concurrent.Parser.GraphConstructor
 
-import Concurrent.Types.Functions
-import Concurrent.Types.DataFlowGraph
-import Concurrent.Utils.IR
+import public Concurrent.Types.Functions
+import public Concurrent.Types.DataFlowGraph
+import public Concurrent.Utils.IR
 
-import Data.List
-import Data.Maybe
+import public Data.List
+import public Data.Maybe
 
 -- Возвращает true если functionForCheck зависимт от resultedFunction
-checkDependencie : (functionForCheck : SplittedFunctionBody) -> (resultedFunction : SplittedFunctionBody) -> Bool
-checkDependencie originalFunction (MkSplittedFunctionBody ResultNotSaved _) = False
-checkDependencie originalFunction (MkSplittedFunctionBody (ResultSaved vars _) _) = 
+checkDependencie : (functionForCheck : TypedSplittedFunctionBody) -> (resultedFunction : TypedSplittedFunctionBody) -> Bool
+checkDependencie originalFunction (MkTypedSplittedFunctionBody ResultNotSaved _ _ _) = False
+checkDependencie originalFunction (MkTypedSplittedFunctionBody (ResultSaved vars _) _ _ _) = 
             let (Parsed _ _ args) = originalFunction.function.argumentConstructor in any ((flip contains) args) vars
 
 -- тут должны проверить все аргументы из функции, на вхлждения в результаты работы остальных функций
-findDependencies : SplittedFunctionBody -> List SplittedFunctionBody -> List SplittedFunctionBody
+findDependencies : TypedSplittedFunctionBody -> List TypedSplittedFunctionBody -> List TypedSplittedFunctionBody
 findDependencies function functions = filter (checkDependencie function) functions
 
 -- Метод создания DependentLine
-dependentLine : SplittedFunctionBody -> List SplittedFunctionBody -> DependentLine
+dependentLine : TypedSplittedFunctionBody -> List TypedSplittedFunctionBody -> DependentLine TypedSplittedFunctionBody
 dependentLine function functions = MkDependentLine function $ findDependencies function functions
 
 -- надо еще отфильтровать одинаковые вхождения в зависимости
 -- делаю это выше вроде
 public export
-constructDataDependencieGraph : List SplittedFunctionBody -> Table DependentLine
+constructDataDependencieGraph : List TypedSplittedFunctionBody -> Table $ DependentLine TypedSplittedFunctionBody
 constructDataDependencieGraph list = foldl (constructDataFlowGraphInternal list) (MkTable []) list where
-    constructDataFlowGraphInternal : List SplittedFunctionBody -> Table DependentLine -> SplittedFunctionBody -> Table DependentLine
+    constructDataFlowGraphInternal : List TypedSplittedFunctionBody -> Table (DependentLine TypedSplittedFunctionBody) -> TypedSplittedFunctionBody -> Table $ DependentLine TypedSplittedFunctionBody
     constructDataFlowGraphInternal functions table function = add (dependentLine function functions) table --MkTable $ add (dependentLine function functions) table.lines

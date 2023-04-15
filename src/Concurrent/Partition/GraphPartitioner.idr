@@ -1,20 +1,20 @@
 module Concurrent.Partition.GraphPartitioner
 
-import Concurrent.Types.Functions
-import Concurrent.Types.DataFlowGraph
-import Concurrent.Utils.IR
+import public Concurrent.Types.Functions
+import public Concurrent.Types.DataFlowGraph
+import public Concurrent.Utils.IR
 
-import Data.Nat
+import public Data.Nat
 
 
 -----------------------------------------------------------------------------------------------------------------------------------
 public export
-interface GraphWeightConfig a where
-    weightNode : a -> DependentLine -> Weight
+interface GraphWeightConfig a b where
+    weightNode : a -> DependentLine b-> Weight
 
 public export
-interface GraphBiPartitioner a where
-    doBiPartition : GraphWeightConfig b => a -> b -> Table DependentLine -> GraphBiPartition OrderedDependentLine
+interface GraphBiPartitioner a c where
+    doBiPartition : GraphWeightConfig b c => a -> b -> Table (DependentLine c) -> GraphBiPartition $ OrderedDependentLine c
 -----------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -47,7 +47,11 @@ data TrivaialGraphWeightConfig : Type where
 
 -----------------------------------------------------------------------------------------------------------------------------------
 public export
-implementation GraphWeightConfig TrivaialGraphWeightConfig where
+implementation GraphWeightConfig TrivaialGraphWeightConfig TypedSplittedFunctionBody where
+    weightNode (WeightAllNatConfig weight) _ = NatWeight weight
+
+public export
+implementation GraphWeightConfig TrivaialGraphWeightConfig SplittedFunctionBody where
     weightNode (WeightAllNatConfig weight) _ = NatWeight weight
 -----------------------------------------------------------------------------------------------------------------------------------
 
@@ -58,20 +62,39 @@ implementation GraphWeightConfig TrivaialGraphWeightConfig where
 
 
 -----------------------------------------------------------------------------------------------------------------------------------
-convert : (List DependentLine, List DependentLine) -> (Table OrderedDependentLine, Table OrderedDependentLine)
+convertTyped : (List $ DependentLine TypedSplittedFunctionBody, List $ DependentLine TypedSplittedFunctionBody) -> (Table $OrderedDependentLine TypedSplittedFunctionBody, Table $ OrderedDependentLine TypedSplittedFunctionBody)
+convertTyped (a, b) = (MkTable $ fst $ foldl addIndex ([], Z) $ reverse a, MkTable $ fst $ foldl addIndex ([], Z) $ reverse b) where
+    addIndex : (List $ OrderedDependentLine TypedSplittedFunctionBody, Nat) -> DependentLine TypedSplittedFunctionBody -> (List (OrderedDependentLine TypedSplittedFunctionBody), Nat)
+    addIndex (acc, index) newLine = (acc ++ [MkOrderedDependentLine index newLine], S index)
+
+convert : (List $ DependentLine SplittedFunctionBody, List $ DependentLine SplittedFunctionBody) -> (Table $ OrderedDependentLine SplittedFunctionBody, Table $ OrderedDependentLine SplittedFunctionBody)
 convert (a, b) = (MkTable $ fst $ foldl addIndex ([], Z) $ reverse a, MkTable $ fst $ foldl addIndex ([], Z) $ reverse b) where
-    addIndex : (List OrderedDependentLine, Nat) -> DependentLine -> (List OrderedDependentLine, Nat)
+    addIndex : (List $ OrderedDependentLine SplittedFunctionBody, Nat) -> DependentLine SplittedFunctionBody -> (List (OrderedDependentLine SplittedFunctionBody), Nat)
     addIndex (acc, index) newLine = (acc ++ [MkOrderedDependentLine index newLine], S index)
 
 -- разбиение должно быть сбалансированным
 -- STUB
 public export
-implementation GraphBiPartitioner Partitioners where
+implementation GraphBiPartitioner Partitioners TypedSplittedFunctionBody where
+    doBiPartition (Random seed) _ graph = 
+        uncurry MkGraphBiPartition $ 
+            convertTyped $
+                foldlIndexed (partGraph $ length graph.lines) ([],[]) graph.lines where
+
+                    partGraph : Nat -> (Nat, (List $ DependentLine TypedSplittedFunctionBody, List $ DependentLine TypedSplittedFunctionBody)) -> DependentLine TypedSplittedFunctionBody -> (List $ DependentLine TypedSplittedFunctionBody, List $ DependentLine TypedSplittedFunctionBody)
+                    partGraph length (index, (first, second)) line = 
+                        if index < (div length 2) then ((line::first), second) else (first, (line::second))
+
+-- разбиение должно быть сбалансированным
+-- STUB
+public export
+implementation GraphBiPartitioner Partitioners SplittedFunctionBody where
     doBiPartition (Random seed) _ graph = 
         uncurry MkGraphBiPartition $ 
             convert $
                 foldlIndexed (partGraph $ length graph.lines) ([],[]) graph.lines where
-                    partGraph : Nat -> (Nat, (List DependentLine, List DependentLine)) -> DependentLine -> (List DependentLine, List DependentLine)
+
+                    partGraph : Nat -> (Nat, (List $ DependentLine SplittedFunctionBody, List $ DependentLine SplittedFunctionBody)) -> DependentLine SplittedFunctionBody -> (List $ DependentLine SplittedFunctionBody, List $ DependentLine SplittedFunctionBody)
                     partGraph length (index, (first, second)) line = 
                         if index < (div length 2) then ((line::first), second) else (first, (line::second))
 -----------------------------------------------------------------------------------------------------------------------------------
@@ -97,16 +120,16 @@ WeightAll1 = WeightAllNatConfig 1
 -- Нужен метод который будет чистить зависимости после разбиения
 -- то есть удалять зависимость на текущий подграф
 public export
-simplifyDependencies : GraphBiPartition OrderedDependentLine -> GraphBiPartition OrderedDependentLine
+simplifyDependencies : GraphBiPartition (OrderedDependentLine TypedSplittedFunctionBody) -> GraphBiPartition (OrderedDependentLine TypedSplittedFunctionBody)
 simplifyDependencies (MkGraphBiPartition fsg ssg) =
     MkGraphBiPartition (simplifyDependenciesInternal fsg) (simplifyDependenciesInternal ssg) where
-        simplifyDependenciesInternal : Table OrderedDependentLine -> Table OrderedDependentLine
+        simplifyDependenciesInternal : Table (OrderedDependentLine TypedSplittedFunctionBody) -> Table $ OrderedDependentLine TypedSplittedFunctionBody
         simplifyDependenciesInternal table = map (filterDependencies table.lines) table where
-            filterDependencies : List OrderedDependentLine -> OrderedDependentLine -> OrderedDependentLine
+            filterDependencies : List (OrderedDependentLine TypedSplittedFunctionBody) -> OrderedDependentLine TypedSplittedFunctionBody -> OrderedDependentLine TypedSplittedFunctionBody
             filterDependencies lines (MkOrderedDependentLine order line) = 
                 MkOrderedDependentLine order $
                     MkDependentLine line.function $ filterNot ((flip contains) $ map extractFunction lines) line.dependencies where
-                        extractFunction : OrderedDependentLine -> SplittedFunctionBody
+                        extractFunction : OrderedDependentLine TypedSplittedFunctionBody -> TypedSplittedFunctionBody
                         extractFunction line = line.line.function
             
 

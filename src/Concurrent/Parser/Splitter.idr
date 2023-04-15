@@ -2,20 +2,20 @@ module Concurrent.Parser.Splitter
 
 
 
-import Concurrent.Types.Functions
-import Concurrent.Utils.IR
+import public Concurrent.Types.Functions
+import public Concurrent.Utils.IR
 
-import Data.Maybe
-import Data.List
-import Language.Reflection
-import Language.Reflection.Pretty
-import Language.Reflection.Syntax
-import Text.PrettyPrint.Bernardy
+import public Data.Maybe
+import public Data.List
+import public Language.Reflection
+import public Language.Reflection.Pretty
+import public Language.Reflection.Syntax
+import public Text.PrettyPrint.Bernardy
 
 %default total
 %language ElabReflection
 
-
+------------------------------------------- Legacy Api ----------------------------------------------------------------------
 
 
 -- Принимает вызов паралельной функции и парсит его во внутрнее представление

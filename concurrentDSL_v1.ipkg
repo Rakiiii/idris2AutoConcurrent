@@ -13,7 +13,7 @@ authors = "Evgenii Sudarskii"
 -- langversion
 
 -- packages to add to search path
-depends = elab-pretty, elab-util, prettier
+depends = contrib, elab-pretty, elab-util, prettier
 
 -- modules to install
 -- modules = Derive.Pretty, Language.Reflection.Pretty

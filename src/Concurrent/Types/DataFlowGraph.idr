@@ -1,12 +1,12 @@
 module Concurrent.Types.DataFlowGraph
 
-import Concurrent.Types.Functions
-import Concurrent.Utils.IR
+import public Concurrent.Types.Functions
+import public Concurrent.Utils.IR
 
-import Data.Fun
-import Data.List
-import Text.PrettyPrint.Bernardy
-import Language.Reflection
+import public Data.Fun
+import public Data.List
+import public Text.PrettyPrint.Bernardy
+import public Language.Reflection
 
 -----------------------------------------------------------------------------------------------------------------------------------
 public export
@@ -14,10 +14,10 @@ data Weight : Type where
     NatWeight : Nat -> Weight
 
 public export
-record DependentLine where
+record DependentLine functionBodyType where
     constructor MkDependentLine
-    function : SplittedFunctionBody
-    dependencies : List SplittedFunctionBody
+    function : functionBodyType
+    dependencies : List functionBodyType
 
 public export
 record Table a where
@@ -25,16 +25,16 @@ record Table a where
     lines : List a
 
 public export 
-record OrderedDependentLine where
+record OrderedDependentLine functionBodyType where
     constructor MkOrderedDependentLine
     order : Nat
-    line  : DependentLine
+    line  : DependentLine functionBodyType
 
 public export 
-record CleanDependentLine where
+record CleanDependentLine functionBodyType where
     constructor MkCleanDependentLine
-    line                 : DependentLine
-    chanelGetDepenencies : List SplittedFunctionBody
+    line                 : DependentLine functionBodyType
+    chanelGetDepenencies : List functionBodyType
 
 
 public export
@@ -80,22 +80,44 @@ dataDependenciesNames s =
 textDependencies : List SplittedFunctionBody -> String
 textDependencies = show . join . map dataDependenciesNames
 
+dataDependenciesNamesTyped : TypedSplittedFunctionBody -> List String
+dataDependenciesNamesTyped s = 
+    case s.resultVariable of
+        ResultNotSaved      => []
+        ResultSaved names _ => names
+
+textDependenciesTyped : List TypedSplittedFunctionBody -> String
+textDependenciesTyped = show . join . map dataDependenciesNamesTyped
+
 public export
-implementation Pretty DependentLine where
+implementation SplittedFunctionBody => Pretty (DependentLine SplittedFunctionBody) where
     prettyPrec p line = paragraph $ (flush $ text "Function:" <++> prettyPrec p line.function) <+> 
         (text $ "Dependencies: " ++ textDependencies line.dependencies)
+
+public export
+implementation TypedSplittedFunctionBody => Pretty (DependentLine TypedSplittedFunctionBody) where
+    prettyPrec p line = paragraph $ (flush $ text "Function:" <++> prettyPrec p line.function) <+> 
+        (text $ "Dependencies: " ++ textDependenciesTyped line.dependencies)
 
 public export
 implementation Pretty a => Pretty (Table a) where
     prettyPrec p table = prettyPrec p table.lines
 
 public export
-implementation Pretty OrderedDependentLine where
+implementation SplittedFunctionBody => Pretty (OrderedDependentLine SplittedFunctionBody) where
     prettyPrec p (MkOrderedDependentLine ord line) = (flush $ prettyPrec p line) <+> "Call sequence number:" <++> prettyPrec p ord
 
 public export
-implementation Pretty CleanDependentLine where
+implementation TypedSplittedFunctionBody => Pretty (OrderedDependentLine TypedSplittedFunctionBody) where
+    prettyPrec p (MkOrderedDependentLine ord line) = (flush $ prettyPrec p line) <+> "Call sequence number:" <++> prettyPrec p ord
+
+public export
+implementation SplittedFunctionBody => Pretty (CleanDependentLine SplittedFunctionBody) where
     prettyPrec p (MkCleanDependentLine line deps) = (flush $ prettyPrec p line) <+> (text $ "New dependencies for channelGet:" ++ (textDependencies deps))
+
+public export
+implementation TypedSplittedFunctionBody => Pretty (CleanDependentLine TypedSplittedFunctionBody) where
+    prettyPrec p (MkCleanDependentLine line deps) = (flush $ prettyPrec p line) <+> (text $ "New dependencies for channelGet:" ++ (textDependenciesTyped deps))
 -----------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -113,15 +135,15 @@ implementation Pretty CleanDependentLine where
 
 -----------------------------------------------------------------------------------------------------------------------------------
 public export
-implementation Eq DependentLine where
+implementation Eq functionBodyType => Eq (DependentLine functionBodyType) where
     (==) a b = a.function == b.function && compare a.dependencies b.dependencies
 
 public export
-implementation Eq OrderedDependentLine where
+implementation Eq functionBodyType => Eq (OrderedDependentLine functionBodyType) where
     (==) a b = a.line == b.line && a.order == b.order
 
 public export
-implementation Eq CleanDependentLine where
+implementation Eq functionBodyType => Eq (CleanDependentLine functionBodyType) where
     (==) a b = a.line == b.line && compare a.chanelGetDepenencies b.chanelGetDepenencies
     
 public export
@@ -201,12 +223,24 @@ implementation Functor GraphBiPartition where
 
 -----------------------------------------------------------------------------------------------------------------------------------
 public export
-implementation Channalable DependentLine where
+implementation Channalable (DependentLine TypedSplittedFunctionBody) where
     channelName = channelName . function
+    channelNameStr = channelNameStr . function
 
 public export
-implementation Channalable CleanDependentLine where
+implementation Channalable (DependentLine SplittedFunctionBody) where
+    channelName = channelName . function
+    channelNameStr = channelNameStr . function
+
+public export
+implementation Channalable (CleanDependentLine SplittedFunctionBody) where
     channelName = channelName . function . line
+    channelNameStr = channelNameStr . function . line
+
+public export
+implementation Channalable (CleanDependentLine TypedSplittedFunctionBody) where
+    channelName = channelName . function . line
+    channelNameStr = channelNameStr . function . line
 -----------------------------------------------------------------------------------------------------------------------------------
 
 
