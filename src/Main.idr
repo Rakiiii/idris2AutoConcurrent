@@ -234,7 +234,7 @@ testGenerateInitFunctionDeclaration functionName inputType outputArgument functi
 checkDeclarationInitFunctionExist : Integer -> IO Integer
 checkDeclarationInitFunctionExist = testInitFunctionDeclaration
 
-%runElab makeFunctionConcurrent "testMakeFunctionConcurrent" Integer Integer $ \saw =>
+%runElab makeFunctionConcurrent Bisection "testMakeFunctionConcurrent" Integer Integer $ \saw =>
     let result1 = concurrentFunction1 << saw
     in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
     in let result3 = concurrentFunction3 << result2

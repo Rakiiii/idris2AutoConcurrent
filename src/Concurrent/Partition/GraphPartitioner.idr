@@ -44,6 +44,14 @@ interface GraphBiPartitioner a c where
 
 -----------------------------------------------------------------------------------------------------------------------------------
 public export
+data PartitionAlgorithms = Bisection | KerniganeLine
+
+public export
+algorithm : a -> a -> PartitionAlgorithms -> a
+algorithm b k Bisection = b
+algorithm b k KerniganeLine = k
+
+public export
 data Partitioners : Type where
     Random : Seed -> Partitioners
     KerniganLine : Seed -> Partitioners
@@ -489,6 +497,10 @@ implementation GraphBiPartitioner Partitioners SplittedFunctionBody where
 public export
 RandomBiPartitioner : ?
 RandomBiPartitioner = Random 0
+
+public export
+KLBiPartitioner : ?
+KLBiPartitioner = KerniganLine 0
 
 public export
 WeightAll1 : ?

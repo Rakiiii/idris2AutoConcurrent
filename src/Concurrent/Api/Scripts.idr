@@ -41,15 +41,21 @@ import public Prelude
 
 -------------------- Scripts -----------------------------------------------------------------
 public export 
-makeFunctionConcurrent : (functionName : String) -> (a : Type) -> (b : Type) -> (ConcurrentWrap a -> ConcurrentWrap b) -> Elab ()
-makeFunctionConcurrent functionName inputType outputArgument function = do 
+makeFunctionConcurrent : (algorithm : PartitionAlgorithms)      ->
+                         (functionName : String)                -> 
+                         (a : Type)                             -> 
+                         (b : Type)                             -> 
+                         (ConcurrentWrap a -> ConcurrentWrap b) -> 
+                            Elab ()
+makeFunctionConcurrent alg functionName inputType outputArgument function = do 
     let typedStub : (List $ List Decl, List Decl) = ([], [])
+    let partitioner = algorithm RandomBiPartitioner KLBiPartitioner alg
     functionBody <- Reflection.quote function
     outputArgumentType <- Reflection.quote outputArgument
     let res = parseLambdaFunction functionBody
                     `rxMapInternalFst` List.reverse
                     `rxMapInternalFst` constructDataDependencieGraph
-                    `rxMapInternalFst` dup (simplifyDependencies . doBiPartition RandomBiPartitioner WeightAll1)
+                    `rxMapInternalFst` dup (simplifyDependencies . doBiPartition partitioner WeightAll1)
                     `rxMapInternalFst` (uncurry generateFunctionBodies)
                     `rxMap` (uncurry4 composeConcurrentFunctionsAndWrap)
                     `rxJoin` ()
