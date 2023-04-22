@@ -234,7 +234,13 @@ testGenerateInitFunctionDeclaration functionName inputType outputArgument functi
 checkDeclarationInitFunctionExist : Integer -> IO Integer
 checkDeclarationInitFunctionExist = testInitFunctionDeclaration
 
-%runElab makeFunctionConcurrent Bisection "testMakeFunctionConcurrent" Integer Integer $ \saw =>
+%runElab makeFunctionConcurrent Bisection "testMakeFunctionConcurrentBI" Integer Integer $ \saw =>
+    let result1 = concurrentFunction1 << saw
+    in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
+    in let result3 = concurrentFunction3 << result2
+    in concurrentFunction4 << concat1 result1 result3 concatArguments
+
+%runElab makeFunctionConcurrent (KerniganeLine 10) "testMakeFunctionConcurrentKL" Integer Integer $ \saw =>
     let result1 = concurrentFunction1 << saw
     in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
     in let result3 = concurrentFunction3 << result2
@@ -268,41 +274,80 @@ executeConcurrent functionName inputType _ function = do
 
 
 covering
-testExecuteConcurrentDebug : (functionName : String) -> (a : Type) -> (b : Type) -> (ConcurrentWrap a -> ConcurrentWrap b) -> Elab ()--$  List Decl--TTImp--TypedSplittedFunctionBody--Table SplittedFunctionBody--List SplittedFunctionBody --Errorable (List SplittedFunctionBody, ArgumentType) --List TTImp
-testExecuteConcurrentDebug functionName inputType outputArgument function = do 
-    let localStub : (List $ List Decl, List Decl) = ([], [])
+testExecuteConcurrentDebug : (algorithm : PartitionAlgorithms) -> (functionName : String) -> (a : Type) -> (b : Type) -> (ConcurrentWrap a -> ConcurrentWrap b) -> 
+                                Elab String--$ Table GraphLine--$ GraphBiPartition OrderedGraphLine--$ List $ List Decl--TTImp--TypedSplittedFunctionBody--Table SplittedFunctionBody--List SplittedFunctionBody --Errorable (List SplittedFunctionBody, ArgumentType) --List TTImp
+testExecuteConcurrentDebug alg functionName inputType outputArgument function = do 
+    let localStub : Table GraphLine := MkTable []
+    let partitioner = algorithm RandomBiPartitioner KLBiPartitioner alg
     functionBody <- Reflection.quote function
     outputArgumentType <- Reflection.quote outputArgument
     let errorStubComposeFunctions : (List $ List Decl, List Name) := ([], [])
     let res = parseLambdaFunction functionBody
                     `rxMapInternalFst` List.reverse
                     `rxMapInternalFst` constructDataDependencieGraph
-                    `rxMapInternalFst` dup (simplifyDependencies . doBiPartition RandomBiPartitioner WeightAll1)
-                    `rxMapInternalFst` (\(graph, partition) => let functionsBodies : List TTImp := mapT generateFunctionBody partition in (graph, partition, functionsBodies))
-                    `rxMap` (\((graph, (partition, bodies)), inputArg) =>  
-                                        composeConcurrentFunctions inputArg functionName partition graph bodies
-                                        `rxMap` (\pair => MkArgumentWrapper (fst pair) (snd pair) inputArg graph)
-                            )
-                    `rxJoin` ()
-                    `rxMap` (\wrapper => 
-                                let init = composeInitializationFunction functionName wrapper.startArgument outputArgumentType wrapper.functionNames wrapper.graph
-                                in (wrapper.functionDeclarations, init)
-                        )
-                    `rxJoinEitherPair` ()
+                    `rxMap` fst
+                    -- `rxMapInternalFst` dup (simplifyDependencies . doBiPartition partitioner WeightAll1)
+                    -- `rxMap` (\((_,r) , _) => r)
+                    -- `rxMapInternalFst` (\(graph, partition) => let functionsBodies : List TTImp := mapT generateFunctionBody partition in (graph, partition, functionsBodies))
+                    -- `rxMap` (\((graph, (partition, bodies)), inputArg) =>  
+                    --                     composeConcurrentFunctions inputArg functionName partition graph bodies
+                    --                     `rxMap` fst--(\pair => MkArgumentWrapper (fst pair) (snd pair) inputArg graph)
+                    --         )
+                    -- `rxJoin` ()
+                    -- `rxMap` (\wrapper => 
+                    --             let init = composeInitializationFunction functionName wrapper.startArgument outputArgumentType wrapper.functionNames wrapper.graph
+                    --             in (wrapper.functionDeclarations, init)
+                    --     )
+                    -- `rxJoinEitherPair` ()
                     `rxFlatMap` either (const localStub) id
+                    -- `rxFlatMap` either ?genStub id
+    let weightedGraph = addWeightsToGraph WeightAll1 res
+    let klGraphNonParted = convertToKLGraph weightedGraph
+    -- let m = partWeight klGraphNonParted
+    -- let m' = sum $ map weight klGraphNonParted.nodes
+    let startPartition = createStartPartition klGraphNonParted
+    pure $ show startPartition
+    -- ?ret_rhs
+    -- pure res
+    -- traverse_ declare $ res
+    -- declare $ snd res
 
-    traverse_ declare $ fst res
-    declare $ snd res
+grNoCrossRibs : KLGraphNonParted 4
+grNoCrossRibs = MkKLGraphNonParted [
+    MkKLGraphNodeNonParted 0 [2]   1,
+    MkKLGraphNodeNonParted 1 [0]   1,
+    MkKLGraphNodeNonParted 2 []    1,
+    MkKLGraphNodeNonParted 3 [1, 2] 1
+]
 
+gr : KLGraphNonParted 4
+gr = MkKLGraphNonParted [
+    MkKLGraphNodeNonParted 0 [1, 2]   1,
+    MkKLGraphNodeNonParted 1 [0, 3]   1,
+    MkKLGraphNodeNonParted 2 [0, 3]    1,
+    MkKLGraphNodeNonParted 3 [1, 2] 1
+]
 
+grS : KLGraph 4
+grS = createStartPartition gr
 
+debugKL : Nat -> KLGraphNonParted 4 -> KLGraph 4
+debugKL n partition = do 
+    let start = createStartPartition partition
+    itterateOverKerniganLine n start
+
+    -- ?debugKL_rhs
+
+printDebug : KLGraph a -> (Nat, String)
+printDebug g = do
+    let ext = div (sum $ map externalRibs g.nodes) 2
+    (ext, show g)
 
 
 
 
 -- testExecuteConcurrentObj : ?
--- testExecuteConcurrentObj = 
--- %runElab makeFunctionConcurrent "concurrentFunction" Integer Integer $ \saw =>
+-- testExecuteConcurrentObj = %runElab testExecuteConcurrentDebug (KerniganeLine 1) "concurrentFunction" Integer Integer $ \saw =>
 --     let result1 = concurrentFunction1 << saw
 --     in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
 --     in let result3 = concurrentFunction3 << result2

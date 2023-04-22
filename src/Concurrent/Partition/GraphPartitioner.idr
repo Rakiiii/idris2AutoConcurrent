@@ -11,9 +11,11 @@ import public Data.Fin
 
 -----------------------------------------------------------------------------------------------------------------------------------
 %inline
+public export
 GraphLine : Type
 GraphLine = DependentLine TypedSplittedFunctionBody
 %inline
+public export
 OrderedGraphLine : Type
 OrderedGraphLine = OrderedDependentLine TypedSplittedFunctionBody
 
@@ -44,17 +46,17 @@ interface GraphBiPartitioner a c where
 
 -----------------------------------------------------------------------------------------------------------------------------------
 public export
-data PartitionAlgorithms = Bisection | KerniganeLine
+data PartitionAlgorithms = Bisection | KerniganeLine Nat
 
 public export
-algorithm : a -> a -> PartitionAlgorithms -> a
+algorithm : a -> (Nat -> a) -> PartitionAlgorithms -> a
 algorithm b k Bisection = b
-algorithm b k KerniganeLine = k
+algorithm b k (KerniganeLine m) = k m
 
 public export
 data Partitioners : Type where
     Random : Seed -> Partitioners
-    KerniganLine : Seed -> Partitioners
+    KerniganLine : Nat -> Partitioners
 
 public export
 data TrivaialGraphWeightConfig : Type where
@@ -135,26 +137,36 @@ toTable table = MkTable $ map fst table.lines
 --  
 --
 --
+-- tmp 
+public export
 data Part = Left | Right
 implementation Eq Part where
     (==) Left  Left  = True
     (==) Right Right = True
     (==) _     _     = False
 
+-- tmp 
+public export
 not : Part -> Part
 not Left  = Right
 not Right = Left
 
+-- tmp 
+public export
 record KLGraphNodeNonParted (graphSize : Nat) where
     constructor MkKLGraphNodeNonParted
     index          : Fin graphSize
     connectedNodes : List $ Fin graphSize
     weight         : Nat
 
+-- tmp 
+public export
 record KLGraphNonParted (graphSize : Nat) where
     constructor MkKLGraphNonParted
     nodes : List $ KLGraphNodeNonParted graphSize
 
+-- tmp 
+public export
 record KLGraphNode (graphSize : Nat) where
     constructor MkKLGraphNode
     index          : Fin graphSize
@@ -164,43 +176,130 @@ record KLGraphNode (graphSize : Nat) where
     weight         : Nat
     part           : Part
 
+-- tmp 
+public export
 record KLGraph (graphSize : Nat) where
     constructor MkKLGraph
     nodes : List $ KLGraphNode graphSize
 
+-- tmp 
+public export
 record MoveCoff (graphSize : Nat) where
     constructor MkMoveCoff
     node  : KLGraphNode graphSize
     coffs : List $ (KLGraphNode graphSize, Integer)
 
+
+
+
+
+
+
+
+
+-- tmp
+public export
+implementation Show Part where
+    show Left = "Left"
+    show Right = "Right"
+
+-- tmp
+public export
+implementation Show (MoveCoff a) where
+    show coff = "node: " ++ show coff.node.index ++ " :: " ++ (show $ map (mapFst index) coff.coffs)
+
+-- tmp 
+public export
+implementation Show (KLGraphNode a) where
+    show node = "node index: " ++ (show node.index) ++ " weight: " ++ (show node.weight) ++ " part: " ++ show node.part ++ " external ribs: "++ show node.externalRibs ++ " internal ribs: " ++ show node.internalRibs ++ " connected nodes: " ++ (show node.connectedNodes)--?prettyPrecNode_stub
+
+-- tmp 
+public export
+implementation Show (KLGraph a) where
+    show graph = "graph:" ++ show graph.nodes
+
+-- tmp 
+public export
+implementation Show (KLGraphNodeNonParted a) where
+    show node = "node index: " ++ (show node.index) ++ " weight: " ++ (show node.weight) ++ " connected nodes: " ++ (show node.connectedNodes)--?prettyPrecNode_stub
+
+-- tmp 
+public export
+implementation Show (KLGraphNonParted a) where
+    show graph = "graph:" ++ show graph.nodes
+
+-- tmp 
+public export
+implementation Pretty (KLGraphNodeNonParted a) where
+    prettyPrec p node = flush $ text $ "node index: " ++ (show node.index) ++ " weight: " ++ (show node.weight) ++ " connected nodes: " ++ (show node.connectedNodes) --?prettyPrecNode_stub
+
+-- tmp 
+public export
+implementation Pretty (KLGraphNonParted a) where
+    prettyPrec p graph = (flush $ text "graph:") <+> prettyPrec p graph.nodes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- tmp 
+public export
 implementation Eq (KLGraphNode graphSize) where
     (==) a b = a.index == b.index
 
+-- tmp 
+public export
 [internalCoffOrd] Ord (KLGraphNode graphSize, Integer) where
     compare a b = compare (snd a) (snd b)    
 
+-- tmp 
+public export
 findLargest : List (KLGraphNode graphSize, Integer) -> Maybe (KLGraphNode graphSize, Integer)
 findLargest xs = fst $ sort @{internalCoffOrd} xs where
 
+-- tmp 
+public export
 implementation Eq (MoveCoff graphSize) where
     (==) a b = a.node == b.node && a.coffs == b.coffs
 
+-- tmp 
+public export
 [coffOrd] Ord (MoveCoff graphSize) where
     compare a b = compare (snd <$> findLargest a.coffs) (snd <$> findLargest b.coffs)
 
+-- tmp 
+public export
 isNodesInSamePart : KLGraphNode graphSize -> KLGraphNode graphSize -> Bool
 isNodesInSamePart node1 node2 = node1.part == node2.part
 
+-- tmp 
+public export
 decrement : Nat -> Nat
 decrement Z = Z
 decrement (S n) = n
 
+-- tmp 
+public export
 increment : Nat -> Nat
 increment = S
 
+-- tmp 
+public export
 [OrdWithWeights] Eq a => Ord (Pair a Nat) where
     compare a b = compare (snd a) (snd b)
 
+-- Алгоритм генерирует пустое разюиение с 1 стороны
+-- tmp 
+public export
 convertToBiPartition : (table : WeightedTable GraphLine) -> KLGraph (length table.lines) -> GraphBiPartition OrderedGraphLine
 convertToBiPartition table partition = do 
     let (leftTable, rightTable) = foldl (splitNodes table) ([], []) partition.nodes
@@ -228,6 +327,23 @@ convertToBiPartition table partition = do
         let sortByWeights = sort weighetsPart @{OrdWithWeights}
         map (uncurry $ flip MkOrderedDependentLine) sortByWeights
 
+
+-- tmp
+public export 
+addCrossRibs : KLGraphNonParted graphSize -> KLGraphNonParted graphSize
+addCrossRibs graph = { nodes := map addCrossRibsToNode graph.nodes } graph where
+
+    addIfConnected : Fin graphSize -> List (Fin graphSize) -> KLGraphNodeNonParted graphSize -> List (Fin graphSize)
+    addIfConnected index acc node = if contains index node.connectedNodes then node.index::acc else acc 
+
+    findAllConnectedNodes : KLGraphNodeNonParted graphSize -> List $ Fin graphSize
+    findAllConnectedNodes node = foldl (addIfConnected node.index) [] graph.nodes
+
+    addCrossRibsToNode : KLGraphNodeNonParted graphSize -> KLGraphNodeNonParted graphSize
+    addCrossRibsToNode node = { connectedNodes := sort (node.connectedNodes ++ findAllConnectedNodes node)} node --?addCrossRibsToNode_rhs
+
+-- tmp 
+public export
 convertToKLGraph : (table : WeightedTable GraphLine) -> KLGraphNonParted $ length table.lines
 convertToKLGraph table = MkKLGraphNonParted $ mapIndexed table.lines createKLGraphNode where
 
@@ -241,11 +357,17 @@ convertToKLGraph table = MkKLGraphNonParted $ mapIndexed table.lines createKLGra
     createKLGraphNode : (Fin $ length (table.lines), (DependentLine TypedSplittedFunctionBody, Weight)) -> KLGraphNodeNonParted $ length table.lines
     createKLGraphNode (index, (line, NatWeight weight)) = MkKLGraphNodeNonParted index (findConnectedNodes line) weight
 
+
+
+-- tmp 
+public export
 partWeight : KLGraphNonParted graphSize -> Nat
 partWeight graph = half $ sum $ map weight graph.nodes where
     half : Nat -> Nat
-    half = div 2
+    half = (flip div) 2
 
+-- tmp 
+public export
 createStartPartition : KLGraphNonParted graphSize -> KLGraph graphSize
 createStartPartition (MkKLGraphNonParted []) = MkKLGraph []
 createStartPartition graph@(MkKLGraphNonParted (firstNode::xs)) = do 
@@ -283,6 +405,8 @@ createStartPartition graph@(MkKLGraphNonParted (firstNode::xs)) = do
                                 part
 
 
+-- tmp 
+public export
 moveNodes : (KLGraphNode graphSize, KLGraphNode graphSize) -> KLGraph graphSize -> KLGraph graphSize
 moveNodes (node1, node2) graph = MkKLGraph $ map updateNode graph.nodes where
 
@@ -329,9 +453,13 @@ moveNodes (node1, node2) graph = MkKLGraph $ map updateNode graph.nodes where
                   else updatingNode
 
 
+-- tmp 
+public export
 isNodesConnected : KLGraphNode graphSize -> KLGraphNode graphSize -> Bool
 isNodesConnected node1 node2 = contains node2.index node1.connectedNodes 
 
+-- tmp 
+public export
 countCoffForNode : (currentNode : KLGraphNode graphSize) -> (checkNode : KLGraphNode graphSize) -> (KLGraphNode graphSize, Integer)
 countCoffForNode currentNode checkNode = pair checkNode $ countCoffForNodeInternal (isNodesInSamePart currentNode checkNode) (isNodesConnected currentNode checkNode) where
         countCoffForNodeInternal : Bool -> Bool -> Integer
@@ -340,9 +468,13 @@ countCoffForNode currentNode checkNode = pair checkNode $ countCoffForNodeIntern
         countCoffForNodeInternal _    False = (cast (currentNode.externalRibs + checkNode.externalRibs)) - (cast (currentNode.internalRibs + cast checkNode.internalRibs))
   
 
+-- tmp 
+public export
 countMoveCoffsForNode : KLGraphNode graphSize -> KLGraph graphSize -> MoveCoff graphSize
 countMoveCoffsForNode node graph = MkMoveCoff node $ map (countCoffForNode node) graph.nodes
 
+-- tmp 
+public export
 countMoveCoffs : KLGraph graphSize -> List $ MoveCoff graphSize
 countMoveCoffs (MkKLGraph []) = []
 countMoveCoffs (MkKLGraph [x]) = []
@@ -353,21 +485,30 @@ countMoveCoffs graph@(MkKLGraph (node::nodes)) = countMoveCoffsInternal graph $ 
         countMoveCoffsInternal graph [node] = [countMoveCoffsForNode node graph]
         countMoveCoffsInternal graph (node::nodes) = (countMoveCoffsForNode node graph)::(countMoveCoffsInternal graph nodes)
 
+-- не учитывает веса разбиения
+--  он проблема не тут
+-- tmp 
+public export
 findMovePair :  List (MoveCoff graphSize) -> Maybe (KLGraphNode graphSize, KLGraphNode graphSize)
 findMovePair xs = 
+    -- тут должен быть не fst, а первая пара с ~ равным весом
     case fst $ sort @{coffOrd} xs of
         Nothing => Nothing
         Just x  => 
             case findLargest x.coffs of
-                Nothing       => Nothing
-                Just (_ , 0)  => Nothing
-                Just (n , _)  => Just $ pair x.node n
+                Nothing          => Nothing
+                Just (_ , 0)     => Nothing
+                Just (n , coff)  => if coff > 0 then Just $ pair x.node n else Nothing
 
+-- tmp 
+public export
 data IsUpdated = Yes | No
 isUpdated : IsUpdated -> a -> a -> a
 isUpdated No  y _ = y
 isUpdated Yes _ z = z
 
+-- tmp 
+public export
 itterationOfKerniganLine : (partiotion : KLGraph graphSize) -> (KLGraph graphSize, IsUpdated)
 itterationOfKerniganLine partition = do 
     let moveCoffs = countMoveCoffs partition
@@ -376,6 +517,8 @@ itterationOfKerniganLine partition = do
     let maybeNewPartition = map (flipMove partition) movePair
     maybe (partition, No) (dup $ const Yes) maybeNewPartition
 
+-- tmp 
+public export
 itterateOverKerniganLine : (maxAmountOfItterations : Nat) -> (partiotion : KLGraph graphSize) -> KLGraph graphSize
 itterateOverKerniganLine Z partiotion = partiotion
 itterateOverKerniganLine (S nextMaxAmountOfItteration) partition = 
@@ -409,15 +552,16 @@ addWeightsToGraph weighter graph = MkWeightedTable $ map addWeightToLine graph.l
 public export
 bipartGraphWithKerniganlLine :  GraphWeightConfig b TypedSplittedFunctionBody => 
                                 (maxAmountOfItteractions : Nat)               ->
-                                (startPartitionGenerator : Seed)              -> 
                                 (weighter : b)                                -> 
                                 (graph : Table GraphLine)                     -> 
                                     GraphBiPartition OrderedGraphLine
-bipartGraphWithKerniganlLine maxAmountOfItteractions startPartitionGenerator weighter graph = do
+bipartGraphWithKerniganlLine maxAmountOfItteractions weighter graph = do
     let weightedGraph = addWeightsToGraph weighter graph
-    let klGraphNonParted = convertToKLGraph weightedGraph
+    let klGraphNonPartedNoCrossRibs = convertToKLGraph weightedGraph
+    let klGraphNonParted = addCrossRibs klGraphNonPartedNoCrossRibs
     let startPartition = createStartPartition klGraphNonParted
     let partition = itterateOverKerniganLine maxAmountOfItteractions startPartition
+    -- TODO:: Добавлять порядок вызова функций на основе klGraphNonPartedNoCrossRibs
     convertToBiPartition weightedGraph partition
 
 
@@ -443,7 +587,7 @@ bipartGraphWithKerniganlLine maxAmountOfItteractions startPartitionGenerator wei
 
 
 -----------------------------------------------------------------------------------------------------------------------------------
-MAX_AMOUNT_OF_ITTERATIONS_KL = S 999
+MAX_AMOUNT_OF_ITTERATIONS_KL = Z--S 0
 
 
 convertTyped : (List $ DependentLine TypedSplittedFunctionBody, List $ DependentLine TypedSplittedFunctionBody) -> (Table $OrderedDependentLine TypedSplittedFunctionBody, Table $ OrderedDependentLine TypedSplittedFunctionBody)
@@ -460,7 +604,7 @@ convert (a, b) = (MkTable $ fst $ foldl addIndex ([], Z) $ reverse a, MkTable $ 
 -- STUB
 public export
 implementation GraphBiPartitioner Partitioners TypedSplittedFunctionBody where
-    doBiPartition (KerniganLine seed) weighter graph = bipartGraphWithKerniganlLine MAX_AMOUNT_OF_ITTERATIONS_KL seed weighter graph
+    doBiPartition (KerniganLine maxAmountOfItterations) weighter graph = bipartGraphWithKerniganlLine maxAmountOfItterations weighter graph
     doBiPartition (Random seed) _ graph = 
         uncurry MkGraphBiPartition $ 
             convertTyped $
@@ -500,7 +644,7 @@ RandomBiPartitioner = Random 0
 
 public export
 KLBiPartitioner : ?
-KLBiPartitioner = KerniganLine 0
+KLBiPartitioner = KerniganLine
 
 public export
 WeightAll1 : ?
@@ -509,7 +653,7 @@ WeightAll1 = WeightAllNatConfig 1
 -- Нужен метод который будет чистить зависимости после разбиения
 -- то есть удалять зависимость на текущий подграф
 public export
-simplifyDependencies : GraphBiPartition (OrderedDependentLine TypedSplittedFunctionBody) -> GraphBiPartition (OrderedDependentLine TypedSplittedFunctionBody)
+simplifyDependencies : GraphBiPartition OrderedGraphLine -> GraphBiPartition OrderedGraphLine
 simplifyDependencies (MkGraphBiPartition fsg ssg) =
     MkGraphBiPartition (simplifyDependenciesInternal fsg) (simplifyDependenciesInternal ssg) where
         simplifyDependenciesInternal : Table (OrderedDependentLine TypedSplittedFunctionBody) -> Table $ OrderedDependentLine TypedSplittedFunctionBody

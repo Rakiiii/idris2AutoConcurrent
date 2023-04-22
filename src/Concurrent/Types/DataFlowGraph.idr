@@ -118,6 +118,11 @@ implementation SplittedFunctionBody => Pretty (CleanDependentLine SplittedFuncti
 public export
 implementation TypedSplittedFunctionBody => Pretty (CleanDependentLine TypedSplittedFunctionBody) where
     prettyPrec p (MkCleanDependentLine line deps) = (flush $ prettyPrec p line) <+> (text $ "New dependencies for channelGet:" ++ (textDependenciesTyped deps))
+
+public export 
+implementation Pretty a => Pretty (GraphBiPartition a) where
+    prettyPrec p partition = flush (text "left:" <++> prettyPrec p partition.firstSubGraph) <+> flush (text "right:" <++> prettyPrec p partition.secondSubGraph)
+
 -----------------------------------------------------------------------------------------------------------------------------------
 
 
