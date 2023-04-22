@@ -302,29 +302,14 @@ testExecuteConcurrentDebug functionName inputType outputArgument function = do
 
 -- testExecuteConcurrentObj : ?
 -- testExecuteConcurrentObj = 
-%runElab makeFunctionConcurrent "concurrentFunction" Integer Integer $ \saw =>
-    let result1 = concurrentFunction1 << saw
-    in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
-    in let result3 = concurrentFunction3 << result2
-    in concurrentFunction4 << concat1 result1 result3 concatArguments
+-- %runElab makeFunctionConcurrent "concurrentFunction" Integer Integer $ \saw =>
+--     let result1 = concurrentFunction1 << saw
+--     in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
+--     in let result3 = concurrentFunction3 << result2
+--     in concurrentFunction4 << concat1 result1 result3 concatArguments
 ------------------------------------------- Legacy Api ----------------------------------------------------------------------
 getFunctionBodyAndArguments : TTImp -> (Maybe Arg, TTImp)
 getFunctionBodyAndArguments = mapFst fst . unLambda
-
--- covering
--- createConcurrentExecution: (ConcurrentWrap a -> ConcurrentWrap b) -> Elab ()
--- createConcurrentExecution function = do
---     baseFunctionName <- genSym "concurrentFunctionBaseName"
---     functionTTImp <- Reflection.quote function
---     let (maybeArg, body) = getFunctionBodyAndArguments functionTTImp
---     let functions = splitFunctionByMonoidArrow body
---     let dataDependencieGraph = constructDataDependencieGraph functions
---     let partition = simplifyDependencies $ doBiPartition RandomBiPartitioner WeightAll1 dataDependencieGraph
---     let simplifyedPartition = simplifyDependencies partition
---     let functionsBodies : List TTImp :=  mapT generateFunctionBody simplifyedPartition
---     let (declarations, names) = composeFunctions ?argType ?baseFunctionName partition dataDependencieGraph functionsBodies
---     foldl (\_, decl => do declare decl) (pure ()) declarations
-----------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 

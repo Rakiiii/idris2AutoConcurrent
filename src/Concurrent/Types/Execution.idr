@@ -11,7 +11,7 @@ public export
 record Error where
     constructor MkError 
     payload : Maybe $ List TTImp
-    msg : String
+    msg     : String
 
 public export
 implementation Pretty Error where
@@ -27,10 +27,10 @@ public export
 record ArgumentWrapper where
     constructor MkArgumentWrapper
     functionDeclarations : List $ List Decl
-    functionNames : List Name
+    functionNames        : List Name
 
-    startArgument : InputArgument
-    graph : Table $ DependentLine TypedSplittedFunctionBody
+    startArgument        : InputArgument
+    graph                : Table $ DependentLine TypedSplittedFunctionBody
 
 
 

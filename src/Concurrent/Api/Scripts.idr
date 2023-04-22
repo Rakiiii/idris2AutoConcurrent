@@ -43,10 +43,9 @@ import public Prelude
 public export 
 makeFunctionConcurrent : (functionName : String) -> (a : Type) -> (b : Type) -> (ConcurrentWrap a -> ConcurrentWrap b) -> Elab ()
 makeFunctionConcurrent functionName inputType outputArgument function = do 
-    let localStub : (List $ List Decl, List Decl) = ([], [])
+    let typedStub : (List $ List Decl, List Decl) = ([], [])
     functionBody <- Reflection.quote function
     outputArgumentType <- Reflection.quote outputArgument
-    let errorStubComposeFunctions : (List $ List Decl, List Name) := ([], [])
     let res = parseLambdaFunction functionBody
                     `rxMapInternalFst` List.reverse
                     `rxMapInternalFst` constructDataDependencieGraph
@@ -56,10 +55,12 @@ makeFunctionConcurrent functionName inputType outputArgument function = do
                     `rxJoin` ()
                     `rxMap` composeInitializationFunctionAndWrap outputArgumentType
                     `rxJoinEitherPair` ()
-                    `rxFlatMap` either (const localStub) id
+                    `rxFlatMap` either (const typedStub) id
 
     traverse_ declare $ fst res
     declare $ snd res where
+
+
 
     generateFunctionBodies : (graph : Table $ DependentLine TypedSplittedFunctionBody) -> 
                              (partition : GraphBiPartition $ OrderedDependentLine TypedSplittedFunctionBody) -> 
@@ -72,6 +73,8 @@ makeFunctionConcurrent functionName inputType outputArgument function = do
         let functionsBodies : List TTImp := mapT generateFunctionBody partition 
         in (graph, partition, functionsBodies)
 
+
+
     composeConcurrentFunctionsAndWrap : (graph : Table $ DependentLine TypedSplittedFunctionBody) ->
                                         (partition : GraphBiPartition $ OrderedDependentLine TypedSplittedFunctionBody) ->
                                         (bodies : List TTImp) -> 
@@ -81,10 +84,14 @@ makeFunctionConcurrent functionName inputType outputArgument function = do
         composeConcurrentFunctions inputArg functionName partition graph bodies
             `rxMap` (\pair => MkArgumentWrapper (fst pair) (snd pair) inputArg graph)
 
+
+
     composeInitializationFunctionAndWrap : TTImp -> ArgumentWrapper -> (List $ List Decl, ErrorableList Decl) 
     composeInitializationFunctionAndWrap outputArgumentType wrapper = 
         let init = composeInitializationFunction functionName wrapper.startArgument outputArgumentType wrapper.functionNames wrapper.graph
         in (wrapper.functionDeclarations, init)
+
+
 
     uncurry4 : (a -> b -> c -> d -> e) -> ((a, (b, c)), d) -> e
     uncurry4 f ((a, (b, c)), d) = f a b c d

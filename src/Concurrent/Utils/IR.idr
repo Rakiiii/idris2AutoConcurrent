@@ -1,6 +1,7 @@
 module Concurrent.Utils.IR
 
 import public  Data.Maybe
+import public  Data.Fin
 
 import public  Language.Reflection
 import public Language.Reflection.Pretty
@@ -193,6 +194,29 @@ paragraph d = (flush $ flush $ empty) <+> d
 public export
 dup : (a -> b) -> a -> (a, b)
 dup f a = (a, f a)
+
+listToInd : (list : List a) -> List $ Fin $ length list
+listToInd [] = []
+listToInd (x::xs) = 0::(map Data.Fin.FS $ listToInd xs)
+
+public export
+toIndexedList : (list : List a) -> List (Fin $ length list, a)
+toIndexedList list = zip (listToInd list) list
+
+public export
+find : Eq a => (list : List a) -> a -> Maybe $ Fin $ length list
+find [] _ = Nothing
+find (x::xs) element = if x == element then Just 0 else map FS $ find xs element
+
+public export
+getAt : (xs : List a) -> Fin (length xs) -> a
+getAt [] n impossible
+getAt (x::xs) FZ = x
+getAt (x::xs) (FS n) = getAt xs n
+
+public export
+mapIndexed : (list : List a) -> ((Fin $ length list, a) -> b) -> List b
+mapIndexed list f = map f $ toIndexedList list
 
 public export
 mapInternal : Functor f1 => Functor f2 => (a -> b) -> f1 (f2 a) -> f1 (f2 b)

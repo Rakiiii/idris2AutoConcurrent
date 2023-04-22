@@ -16,7 +16,7 @@ data Weight : Type where
 public export
 record DependentLine functionBodyType where
     constructor MkDependentLine
-    function : functionBodyType
+    function     : functionBodyType
     dependencies : List functionBodyType
 
 public export
@@ -280,4 +280,8 @@ fst = firstSubGraph
 public export
 snd : GraphBiPartition a -> Table a
 snd = secondSubGraph
+
+public export
+natWeight : Weight -> Nat
+natWeight (NatWeight weight) = weight
 -----------------------------------------------------------------------------------------------------------------------------------

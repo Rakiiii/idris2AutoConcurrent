@@ -12,7 +12,7 @@ import public Text.PrettyPrint.Bernardy
 ---------------------------------------------------------- Data types --------------------------------------------------------------------------------
 public export
 data ResultVariable : Type where
-    ResultSaved : List String -> List (Maybe Name) -> ResultVariable
+    ResultSaved    : List String -> List (Maybe Name) -> ResultVariable
     ResultNotSaved : ResultVariable
 
 public export
@@ -33,29 +33,28 @@ record ArgumentType where
 
 public export
 data ArgumentConstructor : Type where
-    -- NotParsed : TTImp -> ArgumentConstructor
     Parsed : ArgumentConstructorType -> (arguments : List TTImp) -> (argumentNames : List String) -> ArgumentConstructor
 
 public export
 record ConcurrentFunction where
     constructor MkConcurrentFunction
-    function : TTImp
+    function            : TTImp
     argumentConstructor : ArgumentConstructor
 
 public export
 record SplittedFunctionBody where
     constructor MkSplittedFunctionBody
     resultVariable : ResultVariable
-    function: ConcurrentFunction
+    function       : ConcurrentFunction
 
 namespace Typed 
     public export
     record TypedSplittedFunctionBody where
         constructor MkTypedSplittedFunctionBody
         resultVariable : ResultVariable
-        function: ConcurrentFunction
-        returnType : ArgumentType
-        inputType : ArgumentType
+        function       : ConcurrentFunction
+        returnType     : ArgumentType
+        inputType      : ArgumentType
 ----------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -94,7 +93,6 @@ implementation Pretty ResultVariable where
 
 public export
 implementation Pretty ArgumentConstructor where
-    -- prettyPrec p (NotParsed body) = prettyPrec p body
     prettyPrec p (Parsed NoConstructor                   _ arguments) = text "wraped variable:" <++> withQuotes (firstOrEmpty arguments)
     prettyPrec p (Parsed Pure                            _ arguments) = text "pure variable:" <++> withQuotes (firstOrEmpty arguments)
     prettyPrec p (Parsed (Concatter dslConcatter f name) _ arguments) = text "concatanation of:" <++> text (show arguments) <++> 
