@@ -63,9 +63,9 @@ makeFunctionConcurrent alg functionName inputType outputArgument function = do
                     `rxJoinEitherPair` ()
                     `rxFlatMap` either (const typedStub) id
 
-    -- traverse_ declare $ fst res
-    -- declare $ snd res
-    pure () 
+    traverse_ declare $ fst res
+    declare $ snd res
+    -- pure () 
     where
 
 
