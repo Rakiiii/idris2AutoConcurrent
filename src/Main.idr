@@ -240,7 +240,7 @@ checkDeclarationInitFunctionExist = testInitFunctionDeclaration
     in let result3 = concurrentFunction3 << result2
     in concurrentFunction4 << concat1 result1 result3 concatArguments
 
-%runElab makeFunctionConcurrent (KerniganeLine 10) "testMakeFunctionConcurrentKL" Integer Integer $ \saw =>
+%runElab makeFunctionConcurrent (KerniganeLine 10 4) "testMakeFunctionConcurrentKL" Integer Integer $ \saw =>
     let result1 = concurrentFunction1 << saw
     in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
     in let result3 = concurrentFunction3 << result2
@@ -275,9 +275,10 @@ executeConcurrent functionName inputType _ function = do
 
 covering
 testExecuteConcurrentDebug : (algorithm : PartitionAlgorithms) -> (functionName : String) -> (a : Type) -> (b : Type) -> (ConcurrentWrap a -> ConcurrentWrap b) -> 
-                                Elab String--$ Table GraphLine--$ GraphBiPartition OrderedGraphLine--$ List $ List Decl--TTImp--TypedSplittedFunctionBody--Table SplittedFunctionBody--List SplittedFunctionBody --Errorable (List SplittedFunctionBody, ArgumentType) --List TTImp
+                                Elab ()--$ Table GraphLine--$ GraphBiPartition OrderedGraphLine--$ List $ List Decl--TTImp--TypedSplittedFunctionBody--Table SplittedFunctionBody--List SplittedFunctionBody --Errorable (List SplittedFunctionBody, ArgumentType) --List TTImp
 testExecuteConcurrentDebug alg functionName inputType outputArgument function = do 
     let localStub : Table GraphLine := MkTable []
+    let inStub : InputArgument := MkInputArgument `(STUB) ""
     let partitioner = algorithm RandomBiPartitioner KLBiPartitioner alg
     functionBody <- Reflection.quote function
     outputArgumentType <- Reflection.quote outputArgument
@@ -285,7 +286,7 @@ testExecuteConcurrentDebug alg functionName inputType outputArgument function = 
     let res = parseLambdaFunction functionBody
                     `rxMapInternalFst` List.reverse
                     `rxMapInternalFst` constructDataDependencieGraph
-                    `rxMap` fst
+                    -- `rxMap` fst
                     -- `rxMapInternalFst` dup (simplifyDependencies . doBiPartition partitioner WeightAll1)
                     -- `rxMap` (\((_,r) , _) => r)
                     -- `rxMapInternalFst` (\(graph, partition) => let functionsBodies : List TTImp := mapT generateFunctionBody partition in (graph, partition, functionsBodies))
@@ -299,33 +300,56 @@ testExecuteConcurrentDebug alg functionName inputType outputArgument function = 
                     --             in (wrapper.functionDeclarations, init)
                     --     )
                     -- `rxJoinEitherPair` ()
-                    `rxFlatMap` either (const localStub) id
-                    -- `rxFlatMap` either ?genStub id
-    let weightedGraph = addWeightsToGraph WeightAll1 res
-    let klGraphNonParted = convertToKLGraph weightedGraph
+                    -- `rxFlatMap` either (const localStub) id
+                    `rxFlatMap` either (const (localStub, inStub)) id
+    let weightedGraph = addWeightsToGraph WeightAll1 $ Builtin.fst res
+    let klGraphNonPartedNoCrossRibsNotOrdered = convertToKLGraph weightedGraph
+    let (klGraphNonPartedNoCrossRibs, isGraphOptimalOrderWasFound) = tryToAddOptimalOrderByDeadline 4 klGraphNonPartedNoCrossRibsNotOrdered--(length klGraphNonPartedNoCrossRibsNotOrdered.nodes) klGraphNonPartedNoCrossRibsNotOrdered
+    let klGraphNonParted = addCrossRibs klGraphNonPartedNoCrossRibs
+    let startPartition = createStartPartition klGraphNonParted
+    let partition = itterateOverKerniganLine 10 startPartition
+    let bipart : GraphBiPartition OrderedGraphLine := 
+        if isGraphOptimalOrderWasFound 
+         then convertToBiPartitionWithOptimalOrder weightedGraph partition
+         else convertToBiPartitionWithTableOrder weightedGraph partition
+    
+    let simplified = simplifyDependencies bipart
+    
+    let functionsBodies : List TTImp := mapT generateFunctionBody simplified
+    
+    let composedFunctionsErr = composeConcurrentFunctions (Builtin.snd res) functionName simplified (Builtin.fst res) functionsBodies
+    let stb : (List $ List Decl, List Name) := ([], [])
+    let composedFunctions = either (const stb) id composedFunctionsErr
+
+    let initErr = composeInitializationFunction functionName (Builtin.snd res) outputArgumentType (Builtin.snd composedFunctions) (Builtin.fst res)
+    let initStub : List Decl := []
+    let init = either (const initStub) id initErr
+
+    pure ()
+    -- traverse_ declare $ Builtin.fst composedFunctions
     -- let m = partWeight klGraphNonParted
     -- let m' = sum $ map weight klGraphNonParted.nodes
-    let startPartition = createStartPartition klGraphNonParted
-    pure $ show startPartition
+    -- let startPartition = createStartPartition klGraphNonParted
+    -- pure init--$ show partition
     -- ?ret_rhs
     -- pure res
     -- traverse_ declare $ res
     -- declare $ snd res
 
-grNoCrossRibs : KLGraphNonParted 4
-grNoCrossRibs = MkKLGraphNonParted [
-    MkKLGraphNodeNonParted 0 [2]   1,
-    MkKLGraphNodeNonParted 1 [0]   1,
-    MkKLGraphNodeNonParted 2 []    1,
-    MkKLGraphNodeNonParted 3 [1, 2] 1
+grC : KLGraphNonParted 4
+grC = MkKLGraphNonParted [
+    MkKLGraphNodeNonParted 0 [2]    1 0,
+    MkKLGraphNodeNonParted 1 [0]    1 0,
+    MkKLGraphNodeNonParted 2 []     1 0,
+    MkKLGraphNodeNonParted 3 [1, 2] 1 0
 ]
 
 gr : KLGraphNonParted 4
 gr = MkKLGraphNonParted [
-    MkKLGraphNodeNonParted 0 [1, 2]   1,
-    MkKLGraphNodeNonParted 1 [0, 3]   1,
-    MkKLGraphNodeNonParted 2 [0, 3]    1,
-    MkKLGraphNodeNonParted 3 [1, 2] 1
+    MkKLGraphNodeNonParted 0 [1, 2] 1 3,
+    MkKLGraphNodeNonParted 1 [0, 3] 1 2,
+    MkKLGraphNodeNonParted 2 [0, 3] 1 1,
+    MkKLGraphNodeNonParted 3 [1, 2] 1 4
 ]
 
 grS : KLGraph 4
@@ -344,10 +368,28 @@ printDebug g = do
     (ext, show g)
 
 
+-- brokeElab : KLGraphNonParted 4 -> Elab $ KLGraph 4
+-- brokeElab graph = do 
+--     let (klGraphNonPartedNoCrossRibs, isGraphOptimalOrderWasFound) = tryToAddOptimalOrderByDeadline (length graph.nodes) graph
+--     let klGraphNonParted = addCrossRibs klGraphNonPartedNoCrossRibs
+--     let startPartition = createStartPartition klGraphNonParted
+--     let partition = itterateOverKerniganLine 10 startPartition
+--     -- ?rt_rhs
+--     pure partition
 
+-- brokeElabInstance : KLGraph 4
+-- brokeElabInstance = %runElab brokeElab grC
+
+testExecuteConcurrentObj : ?
+testExecuteConcurrentObj = %runElab testExecuteConcurrentDebug (KerniganeLine 1 4) "concurrentFunction" Integer Integer $ \saw =>
+    let result1 = concurrentFunction1 << saw
+    in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
+    in let result3 = concurrentFunction3 << result2
+    in concurrentFunction4 << concat1 result1 result3 concatArguments
 
 -- testExecuteConcurrentObj : ?
--- testExecuteConcurrentObj = %runElab testExecuteConcurrentDebug (KerniganeLine 1) "concurrentFunction" Integer Integer $ \saw =>
+-- testExecuteConcurrentObj = 
+-- %runElab makeFunctionConcurrent (KerniganeLine 10) "concurrentFunction" Integer Integer $ \saw =>
 --     let result1 = concurrentFunction1 << saw
 --     in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
 --     in let result3 = concurrentFunction3 << result2

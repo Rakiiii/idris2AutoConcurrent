@@ -8,6 +8,7 @@ import public Data.Nat
 import public System.Random
 import public Data.Fin
 
+%default total
 
 -----------------------------------------------------------------------------------------------------------------------------------
 %inline
@@ -46,17 +47,17 @@ interface GraphBiPartitioner a c where
 
 -----------------------------------------------------------------------------------------------------------------------------------
 public export
-data PartitionAlgorithms = Bisection | KerniganeLine Nat
+data PartitionAlgorithms = Bisection | KerniganeLine Nat Nat
 
 public export
-algorithm : a -> (Nat -> a) -> PartitionAlgorithms -> a
+algorithm : a -> (Nat -> Nat -> a) -> PartitionAlgorithms -> a
 algorithm b k Bisection = b
-algorithm b k (KerniganeLine m) = k m
+algorithm b k (KerniganeLine m n) = k m n
 
 public export
 data Partitioners : Type where
     Random : Seed -> Partitioners
-    KerniganLine : Nat -> Partitioners
+    KerniganLine : Nat -> Nat -> Partitioners
 
 public export
 data TrivaialGraphWeightConfig : Type where
@@ -158,6 +159,7 @@ record KLGraphNodeNonParted (graphSize : Nat) where
     index          : Fin graphSize
     connectedNodes : List $ Fin graphSize
     weight         : Nat
+    order          : Nat
 
 -- tmp 
 public export
@@ -174,6 +176,7 @@ record KLGraphNode (graphSize : Nat) where
     externalRibs   : Nat
     internalRibs   : Nat
     weight         : Nat
+    order          : Nat
     part           : Part
 
 -- tmp 
@@ -211,7 +214,14 @@ implementation Show (MoveCoff a) where
 -- tmp 
 public export
 implementation Show (KLGraphNode a) where
-    show node = "node index: " ++ (show node.index) ++ " weight: " ++ (show node.weight) ++ " part: " ++ show node.part ++ " external ribs: "++ show node.externalRibs ++ " internal ribs: " ++ show node.internalRibs ++ " connected nodes: " ++ (show node.connectedNodes)--?prettyPrecNode_stub
+    show node = 
+        "node index: " ++ (show node.index) ++ 
+        " order: " ++ (show node.order) ++ 
+        " weight: " ++ (show node.weight) ++ 
+        " part: " ++ show node.part ++ 
+        " external ribs: "++ show node.externalRibs ++ 
+        " internal ribs: " ++ show node.internalRibs ++ 
+        " connected nodes: " ++ (show node.connectedNodes)
 
 -- tmp 
 public export
@@ -221,7 +231,11 @@ implementation Show (KLGraph a) where
 -- tmp 
 public export
 implementation Show (KLGraphNodeNonParted a) where
-    show node = "node index: " ++ (show node.index) ++ " weight: " ++ (show node.weight) ++ " connected nodes: " ++ (show node.connectedNodes)--?prettyPrecNode_stub
+    show node = 
+        "node index: " ++ (show node.index) ++ 
+        " order: " ++ (show node.order) ++ 
+        " weight: " ++ (show node.weight) ++ 
+        " connected nodes: " ++ (show node.connectedNodes)
 
 -- tmp 
 public export
@@ -300,8 +314,8 @@ public export
 -- Алгоритм генерирует пустое разюиение с 1 стороны
 -- tmp 
 public export
-convertToBiPartition : (table : WeightedTable GraphLine) -> KLGraph (length table.lines) -> GraphBiPartition OrderedGraphLine
-convertToBiPartition table partition = do 
+convertToBiPartitionWithTableOrder : (table : WeightedTable GraphLine) -> KLGraph (length table.lines) -> GraphBiPartition OrderedGraphLine
+convertToBiPartitionWithTableOrder table partition = do 
     let (leftTable, rightTable) = foldl (splitNodes table) ([], []) partition.nodes
     let addOrderToTable = makeOrdered $ lines $ toTable table
     MkGraphBiPartition (MkTable $ addOrderToTable leftTable) (MkTable $ addOrderToTable rightTable) where
@@ -327,6 +341,44 @@ convertToBiPartition table partition = do
         let sortByWeights = sort weighetsPart @{OrdWithWeights}
         map (uncurry $ flip MkOrderedDependentLine) sortByWeights
 
+-- tmp 
+public export
+convertToBiPartitionWithOptimalOrder : (table : WeightedTable GraphLine) -> KLGraph (length table.lines) -> GraphBiPartition OrderedGraphLine
+convertToBiPartitionWithOptimalOrder table partition = do 
+    let (leftTable, rightTable) = foldl (splitNodes table) ([], []) partition.nodes
+    MkGraphBiPartition (MkTable $ makeOrdered leftTable) (MkTable $ makeOrdered rightTable) where
+
+    splitNodes :  (table : WeightedTable GraphLine) -> (List (GraphLine, Nat), List (GraphLine, Nat)) -> KLGraphNode (length $ table.lines) -> (List (GraphLine, Nat), List (GraphLine, Nat))
+    splitNodes table (left, right) node = do 
+        let line = fst $ getAt table.lines node.index 
+        let lineWithOrder = (line, node.order)
+        let newLeft = if node.part == Left then lineWithOrder::left else left
+        let newRight = if node.part == Right then lineWithOrder::right else right
+        (newLeft, newRight)
+
+    findLine :  List (Nat, GraphLine) -> GraphLine -> Nat
+    findLine [] _ = 0
+    findLine ((index,testLine)::xs) line = if line == testLine then index else findLine xs line
+
+    addWeightsToPart : List (Nat, GraphLine) -> GraphLine -> (GraphLine, Nat)
+    addWeightsToPart tableWithIndexes line = (line, findLine tableWithIndexes line)
+
+    makeOrdered : (part : List (GraphLine, Nat)) -> List OrderedGraphLine
+    makeOrdered part = do 
+        let sortByWeights = sort part @{OrdWithWeights}
+        map (uncurry $ flip MkOrderedDependentLine) sortByWeights
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- tmp
 public export 
@@ -346,16 +398,66 @@ addCrossRibs graph = { nodes := map addCrossRibsToNode graph.nodes } graph where
 public export
 convertToKLGraph : (table : WeightedTable GraphLine) -> KLGraphNonParted $ length table.lines
 convertToKLGraph table = MkKLGraphNonParted $ mapIndexed table.lines createKLGraphNode where
+    
+    findInTableInternal : (lines : List (GraphLine, Weight)) -> TypedSplittedFunctionBody -> Maybe $ Fin $ length lines
+    findInTableInternal [] _ = Nothing
+    findInTableInternal (x::xs) element = if (fst x).function == element then Just 0 else map FS $ findInTableInternal xs element
 
     findInTable : (table : WeightedTable GraphLine) -> TypedSplittedFunctionBody -> Maybe $ Fin $ length table.lines
-    findInTable (MkWeightedTable []) _ = Nothing
-    findInTable (MkWeightedTable (x::xs)) element = if (fst x).function == element then Just 0 else map FS $ findInTable (MkWeightedTable xs) element
+    findInTable (MkWeightedTable lines) element = findInTableInternal lines element
+    -- findInTable (MkWeightedTable []) _ = Nothing
+    -- findInTable (MkWeightedTable (x::xs)) element = if (fst x).function == element then Just 0 else map FS $ findInTable (MkWeightedTable xs) element
 
     findConnectedNodes : GraphLine -> List $ Fin $ length table.lines
     findConnectedNodes line = catMaybes $ map (findInTable table) line.dependencies
 
     createKLGraphNode : (Fin $ length (table.lines), (DependentLine TypedSplittedFunctionBody, Weight)) -> KLGraphNodeNonParted $ length table.lines
-    createKLGraphNode (index, (line, NatWeight weight)) = MkKLGraphNodeNonParted index (findConnectedNodes line) weight
+    createKLGraphNode (index, (line, NatWeight weight)) = MkKLGraphNodeNonParted index (findConnectedNodes line) weight 0
+
+-- tmp
+public export 
+tryToAddOptimalOrderByDeadline : (maxAmountOfSteps : Nat)-> KLGraphNonParted graphSize -> (KLGraphNonParted graphSize, Bool)
+tryToAddOptimalOrderByDeadline Z graph = (graph, False)
+tryToAddOptimalOrderByDeadline (S maxAmountOfSteps) graph = 
+    if isNodesWithoutOrderExist graph
+     then tryToAddOptimalOrderByDeadline maxAmountOfSteps $ addOrderToNodeIfNeeded graph
+     else (graph, True) where
+
+    isNodesWithoutOrderExist : KLGraphNonParted graphSize -> Bool
+    isNodesWithoutOrderExist graph = any (((==) 0) . order) graph.nodes --any (\n => n.order == 0) graph.nodes
+
+    checkOrderIsNotZero : (graph : List $ KLGraphNodeNonParted graphSize) -> (connectedNode : Fin graphSize) -> Bool
+    checkOrderIsNotZero []      connectedNode  = True
+    checkOrderIsNotZero (x::xs) connectedNode  = 
+        if x.index == connectedNode 
+         then x.order /= 0 
+         else checkOrderIsNotZero xs connectedNode
+
+    isAllConnectedNodesMarked : (graph : KLGraphNonParted graphSize) -> (connectedNodes : List $ Fin graphSize) -> Bool
+    isAllConnectedNodesMarked graph connectedNodes = all (checkOrderIsNotZero graph.nodes) connectedNodes
+
+    markNodeWithOrderIfAllConnectedNodeAreMarked : (orderMark : Nat) -> (graph : KLGraphNonParted graphSize) -> (node : KLGraphNodeNonParted graphSize) -> KLGraphNodeNonParted graphSize
+    markNodeWithOrderIfAllConnectedNodeAreMarked orderMark graph node = 
+        if node.order == 0 && (isNil node.connectedNodes || isAllConnectedNodesMarked graph node.connectedNodes)
+         then { order := orderMark } node
+         else node 
+
+    findMaxOrder : List (KLGraphNodeNonParted graphSize) -> Nat -> Nat
+    findMaxOrder []      currentMax = currentMax
+    findMaxOrder (x::xs) currentMax = if x.order > currentMax then findMaxOrder xs x.order else findMaxOrder xs currentMax --?findMaxOrder_rhs
+
+    addOrderToNodeIfNeeded : KLGraphNonParted graphSize -> KLGraphNonParted graphSize
+    addOrderToNodeIfNeeded graph = do 
+        let maxCurrentOrder = findMaxOrder graph.nodes Z --lastOrDefault 0 $ sort $ map order graph.nodes
+        let nextOrder = increment maxCurrentOrder
+        MkKLGraphNonParted $ map (markNodeWithOrderIfAllConnectedNodeAreMarked nextOrder graph) graph.nodes
+
+
+
+
+
+
+
 
 
 
@@ -402,6 +504,7 @@ createStartPartition graph@(MkKLGraphNonParted (firstNode::xs)) = do
                                 0
                                 0
                                 node.weight
+                                node.order
                                 part
 
 
@@ -464,7 +567,7 @@ countCoffForNode : (currentNode : KLGraphNode graphSize) -> (checkNode : KLGraph
 countCoffForNode currentNode checkNode = pair checkNode $ countCoffForNodeInternal (isNodesInSamePart currentNode checkNode) (isNodesConnected currentNode checkNode) where
         countCoffForNodeInternal : Bool -> Bool -> Integer
         countCoffForNodeInternal True _     = 0
-        countCoffForNodeInternal _    True  = (countCoffForNodeInternal False False) - 2
+        countCoffForNodeInternal _    True  = ((cast (currentNode.externalRibs + checkNode.externalRibs)) - (cast (currentNode.internalRibs + cast checkNode.internalRibs))) - 2
         countCoffForNodeInternal _    False = (cast (currentNode.externalRibs + checkNode.externalRibs)) - (cast (currentNode.internalRibs + cast checkNode.internalRibs))
   
 
@@ -552,17 +655,21 @@ addWeightsToGraph weighter graph = MkWeightedTable $ map addWeightToLine graph.l
 public export
 bipartGraphWithKerniganlLine :  GraphWeightConfig b TypedSplittedFunctionBody => 
                                 (maxAmountOfItteractions : Nat)               ->
+                                (maxOrdItteration : Nat)                      ->
                                 (weighter : b)                                -> 
                                 (graph : Table GraphLine)                     -> 
                                     GraphBiPartition OrderedGraphLine
-bipartGraphWithKerniganlLine maxAmountOfItteractions weighter graph = do
+bipartGraphWithKerniganlLine maxAmountOfItteractions maxOrdItteration weighter graph = do
     let weightedGraph = addWeightsToGraph weighter graph
-    let klGraphNonPartedNoCrossRibs = convertToKLGraph weightedGraph
+    let klGraphNonPartedNoCrossRibsNotOrdered = convertToKLGraph weightedGraph
+    let (klGraphNonPartedNoCrossRibs, isGraphOptimalOrderWasFound) = tryToAddOptimalOrderByDeadline maxOrdItteration klGraphNonPartedNoCrossRibsNotOrdered
     let klGraphNonParted = addCrossRibs klGraphNonPartedNoCrossRibs
     let startPartition = createStartPartition klGraphNonParted
     let partition = itterateOverKerniganLine maxAmountOfItteractions startPartition
     -- TODO:: Добавлять порядок вызова функций на основе klGraphNonPartedNoCrossRibs
-    convertToBiPartition weightedGraph partition
+    if isGraphOptimalOrderWasFound 
+     then convertToBiPartitionWithOptimalOrder weightedGraph partition
+     else convertToBiPartitionWithTableOrder weightedGraph partition
 
 
 
@@ -604,7 +711,7 @@ convert (a, b) = (MkTable $ fst $ foldl addIndex ([], Z) $ reverse a, MkTable $ 
 -- STUB
 public export
 implementation GraphBiPartitioner Partitioners TypedSplittedFunctionBody where
-    doBiPartition (KerniganLine maxAmountOfItterations) weighter graph = bipartGraphWithKerniganlLine maxAmountOfItterations weighter graph
+    doBiPartition (KerniganLine maxAmountOfItterations maxOrdItteration) weighter graph = bipartGraphWithKerniganlLine maxAmountOfItterations maxOrdItteration weighter graph
     doBiPartition (Random seed) _ graph = 
         uncurry MkGraphBiPartition $ 
             convertTyped $
@@ -619,7 +726,7 @@ implementation GraphBiPartitioner Partitioners TypedSplittedFunctionBody where
 -- legacy
 public export
 implementation GraphBiPartitioner Partitioners SplittedFunctionBody where
-    doBiPartition (KerniganLine seed) weighter graph = ?unsupported_hole
+    doBiPartition (KerniganLine seed maxOrdItteration) weighter graph = ?unsupported_hole
     doBiPartition (Random seed) _ graph = 
         uncurry MkGraphBiPartition $ 
             convert $
