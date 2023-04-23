@@ -213,3 +213,334 @@ Function: "Main.concurrentFunction4"
             Returns type IntegerType Result of type IntegerType was not saved
                 Dependencies: ["Main_concurrentFunction3_result_0", "Main_concurrentFunction1_result_0"]
 ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+left: [ 
+        Function: "Main.concurrentFunction2" 
+            Called with concatanation of: ["saw", "Main_concurrentFunction1_result_0"] 
+                concatenated by function: "ConcurrentDsl.Api.Concurrent.concat1" user composition function: "Main.concatArguments"; 
+                    Returns type IntegerType Result of type IntegerType was saved to: ["Main_concurrentFunction2_result_0"]
+                        Dependencies: ["Main_concurrentFunction1_result_0"]
+                            Call sequence number: 2, 
+        
+        Function: "Main.concurrentFunction3" 
+            Called with wraped variable: "Main_concurrentFunction2_result_0"; 
+                Returns type IntegerType Result of type IntegerType was saved to: ["Main_concurrentFunction3_result_0"]
+                    Dependencies: ["Main_concurrentFunction2_result_0"]
+                        Call sequence number: 3
+      ]
+right: [ 
+         Function: "Main.concurrentFunction1" 
+            Called with wraped variable: "saw"; 
+                Returns type IntegerType Result of type IntegerType was saved to: ["Main_concurrentFunction1_result_0"]
+                    Dependencies: []
+                        Call sequence number: 1, 
+         
+         Function: "Main.concurrentFunction4" 
+            Called with concatanation of: ["Main_concurrentFunction1_result_0", "Main_concurrentFunction3_result_0"] 
+                concatenated by function: "ConcurrentDsl.Api.Concurrent.concat1" user composition function: "Main.concatArguments"; 
+                    Returns type IntegerType Result of type IntegerType was not saved
+                        Dependencies: ["Main_concurrentFunction3_result_0", "Main_concurrentFunction1_result_0"]
+                            Call sequence number: 4
+       ]
+
+
+left: [ 
+        Function: "Main.concurrentFunction2" 
+            Called with concatanation of: ["saw", "Main_concurrentFunction1_result_0"] 
+                concatenated by function: "ConcurrentDsl.Api.Concurrent.concat1" user composition function: "Main.concatArguments"; 
+                    Returns type IntegerType Result of type IntegerType was saved to: ["Main_concurrentFunction2_result_0"]
+                        Dependencies: ["Main_concurrentFunction1_result_0"]
+                            Call sequence number: 2, 
+        
+        Function: "Main.concurrentFunction3" 
+            Called with wraped variable: "Main_concurrentFunction2_result_0"; 
+                Returns type IntegerType Result of type IntegerType was saved to: ["Main_concurrentFunction3_result_0"]
+                    Dependencies: []
+                        Call sequence number: 3
+      ]
+right: [ 
+         Function: "Main.concurrentFunction1" 
+            Called with wraped variable: "saw"; 
+                Returns type IntegerType Result of type IntegerType was saved to: ["Main_concurrentFunction1_result_0"]
+                    Dependencies: []
+                        Call sequence number: 1, 
+         
+         Function: "Main.concurrentFunction4" 
+            Called with concatanation of: ["Main_concurrentFunction1_result_0", "Main_concurrentFunction3_result_0"] 
+                concatenated by function: "ConcurrentDsl.Api.Concurrent.concat1" user composition function: "Main.concatArguments"; 
+                    Returns type IntegerType Result of type IntegerType was not saved
+                        Dependencies: ["Main_concurrentFunction3_result_0"]
+                            Call sequence number: 4
+       ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+( [ [ IClaim
+        emptyFC
+        MW
+        Public
+        []
+        (mkTy
+           { name = "concurrentFunction_concurrent_function_1"
+           , type =
+                   MkArg
+                     MW
+                     ExplicitArg
+                     Nothing
+                     (   var "System.Concurrency.Channel"
+                      .$ primVal (PrT IntegerType))
+               .-> MkArg
+                     MW
+                     ExplicitArg
+                     Nothing
+                     (   var "System.Concurrency.Channel"
+                      .$ primVal (PrT IntegerType))
+               .-> MkArg
+                     MW
+                     ExplicitArg
+                     Nothing
+                     (   var "System.Concurrency.Channel"
+                      .$ primVal (PrT IntegerType))
+               .-> MkArg
+                     MW
+                     ExplicitArg
+                     Nothing
+                     (   var "System.Concurrency.Channel"
+                      .$ primVal (PrT IntegerType))
+               .-> MkArg MW ExplicitArg Nothing (primVal (PrT IntegerType))
+               .->    var "IO"
+                   .$ alternative
+                        { tpe = UniqueDefault (var "MkUnit")
+                        , alts = [var "Unit", var "MkUnit"]
+                        }
+           })
+    , IDef
+        emptyFC
+        "concurrentFunction_concurrent_function_1"
+        [       var "concurrentFunction_concurrent_function_1"
+             .$ bindVar "channel_Main_concurrentFunction2"
+             .$ bindVar "channel_Main_concurrentFunction3"
+             .$ bindVar "channel_Main_concurrentFunction1"
+             .$ bindVar "channel_Main_concurrentFunction4"
+             .$ bindVar "saw"
+          .=    var "Prelude.Interfaces.(>>=)"
+             .$ (   var "System.Concurrency.channelGet"
+                 .$ var "channel_Main_concurrentFunction1")
+             .$ (    MkArg
+                       MW
+                       ExplicitArg
+                       (Just "Main_concurrentFunction1_result_0")
+                       implicitFalse
+                 .=> ilet
+                       { count = MW
+                       , name = "Main_concurrentFunction2_result_0"
+                       , type = implicitTrue
+                       , val =
+                              var "Main.concurrentFunction2"
+                           .$ (   var "Main.concatArguments"
+                               .$ var "saw"
+                               .$ var "Main_concurrentFunction1_result_0")
+                       , scope =
+                              var "Prelude.Interfaces.(>>)"
+                           .$ (   var "System.Concurrency.channelPut"
+                               .$ var "channel_Main_concurrentFunction2"
+                               .$ var "Main_concurrentFunction2_result_0")
+                           .$ (   var "System.Concurrency.channelPut"
+                               .$ var "channel_Main_concurrentFunction3"
+                               .$ (   var "Main.concurrentFunction3"
+                                   .$ var "Main_concurrentFunction2_result_0"))
+                       })
+        ]
+    ]
+  , [ IClaim
+        emptyFC
+        MW
+        Public
+        []
+        (mkTy
+           { name = "concurrentFunction_concurrent_function_2"
+           , type =
+                   MkArg
+                     MW
+                     ExplicitArg
+                     Nothing
+                     (   var "System.Concurrency.Channel"
+                      .$ primVal (PrT IntegerType))
+               .-> MkArg
+                     MW
+                     ExplicitArg
+                     Nothing
+                     (   var "System.Concurrency.Channel"
+                      .$ primVal (PrT IntegerType))
+               .-> MkArg
+                     MW
+                     ExplicitArg
+                     Nothing
+                     (   var "System.Concurrency.Channel"
+                      .$ primVal (PrT IntegerType))
+               .-> MkArg
+                     MW
+                     ExplicitArg
+                     Nothing
+                     (   var "System.Concurrency.Channel"
+                      .$ primVal (PrT IntegerType))
+               .-> MkArg MW ExplicitArg Nothing (primVal (PrT IntegerType))
+               .->    var "IO"
+                   .$ alternative
+                        { tpe = UniqueDefault (var "MkUnit")
+                        , alts = [var "Unit", var "MkUnit"]
+                        }
+           })
+    , IDef
+        emptyFC
+        "concurrentFunction_concurrent_function_2"
+        [       var "concurrentFunction_concurrent_function_2"
+             .$ bindVar "channel_Main_concurrentFunction2"
+             .$ bindVar "channel_Main_concurrentFunction3"
+             .$ bindVar "channel_Main_concurrentFunction1"
+             .$ bindVar "channel_Main_concurrentFunction4"
+             .$ bindVar "saw"
+          .= ilet
+               { count = MW
+               , name = "Main_concurrentFunction1_result_0"
+               , type = implicitTrue
+               , val = var "Main.concurrentFunction1" .$ var "saw"
+               , scope =
+                      var "Prelude.Interfaces.(>>)"
+                   .$ (   var "System.Concurrency.channelPut"
+                       .$ var "channel_Main_concurrentFunction1"
+                       .$ var "Main_concurrentFunction1_result_0")
+                   .$ (   var "Prelude.Interfaces.(>>=)"
+                       .$ (   var "System.Concurrency.channelGet"
+                           .$ var "channel_Main_concurrentFunction3")
+                       .$ (    MkArg
+                                 MW
+                                 ExplicitArg
+                                 (Just "Main_concurrentFunction3_result_0")
+                                 implicitFalse
+                           .=>    var "System.Concurrency.channelPut"
+                               .$ var "channel_Main_concurrentFunction4"
+                               .$ (   var "Main.concurrentFunction4"
+                                   .$ (   var "Main.concatArguments"
+                                       .$ var
+                                            "Main_concurrentFunction1_result_0"
+                                       .$ var
+                                            "Main_concurrentFunction3_result_0"))))
+               }
+        ]
+    ]
+  ]
+, [ IClaim
+      emptyFC
+      MW
+      Public
+      []
+      (mkTy
+         { name = "concurrentFunction"
+         , type =
+                 MkArg MW ExplicitArg Nothing (primVal (PrT IntegerType))
+             .-> var "IO" .$ primVal (PrT IntegerType)
+         })
+  , IDef
+      emptyFC
+      "concurrentFunction"
+      [    var "concurrentFunction" .$ bindVar "saw"
+        .=    var "Prelude.Interfaces.(>>=)"
+           .$ (   var "System.Concurrency.makeChannel"
+               .! ("a", primVal (PrT IntegerType))
+               .! ("io", var "PrimIO.IO"))
+           .$ (    MkArg MW ExplicitArg (Just "channel_Main_concurrentFunction2") implicitFalse
+               .=>    var "Prelude.Interfaces.(>>=)"
+                   .$ (   var "System.Concurrency.makeChannel"
+                       .! ("a", primVal (PrT IntegerType))
+                       .! ("io", var "PrimIO.IO"))
+                   .$ (    MkArg MW ExplicitArg (Just "channel_Main_concurrentFunction3") implicitFalse
+                       .=>    var "Prelude.Interfaces.(>>=)"
+                           .$ (   var "System.Concurrency.makeChannel"
+                               .! ("a", primVal (PrT IntegerType))
+                               .! ("io", var "PrimIO.IO"))
+                           .$ (    MkArg
+                                     MW
+                                     ExplicitArg
+                                     (Just "channel_Main_concurrentFunction1")
+                                     implicitFalse
+                               .=>    var "Prelude.Interfaces.(>>=)"
+                                   .$ (   var "System.Concurrency.makeChannel"
+                                       .! ("a", primVal (PrT IntegerType))
+                                       .! ("io", var "PrimIO.IO"))
+                                   .$ (    MkArg
+                                             MW
+                                             ExplicitArg
+                                             (Just "channel_Main_concurrentFunction4")
+                                             implicitFalse
+                                       .=>    var "Prelude.Interfaces.(>>=)"
+                                           .$ (   var "Prelude.IO.fork"
+                                               .$ (   var "concurrentFunction_concurrent_function_1"
+                                                   .$ var "channel_Main_concurrentFunction2"
+                                                   .$ var "channel_Main_concurrentFunction3"
+                                                   .$ var "channel_Main_concurrentFunction1"
+                                                   .$ var "channel_Main_concurrentFunction4"
+                                                   .$ var "saw"))
+                                           .$ (    MkArg MW ExplicitArg Nothing (var "PrimIO.ThreadID")
+                                               .=>    var "Prelude.Interfaces.(>>=)"
+                                                   .$ (   var "Prelude.IO.fork"
+                                                       .$ (   var
+                                                                "concurrentFunction_concurrent_function_2"
+                                                           .$ var "channel_Main_concurrentFunction2"
+                                                           .$ var "channel_Main_concurrentFunction3"
+                                                           .$ var "channel_Main_concurrentFunction1"
+                                                           .$ var "channel_Main_concurrentFunction4"
+                                                           .$ var "saw"))
+                                                   .$ (    MkArg
+                                                             MW
+                                                             ExplicitArg
+                                                             Nothing
+                                                             (var "PrimIO.ThreadID")
+                                                       .=>    var "System.Concurrency.channelGet"
+                                                           .! ("a", primVal (PrT IntegerType))
+                                                           .! ("io", var "PrimIO.IO")
+                                                           .$ var "channel_Main_concurrentFunction4"))))))
+      ]
+  ]
+)
+
