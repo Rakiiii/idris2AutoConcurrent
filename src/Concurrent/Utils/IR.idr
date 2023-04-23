@@ -2,6 +2,7 @@ module Concurrent.Utils.IR
 
 import public  Data.Maybe
 import public  Data.Fin
+import public  Data.List1
 
 import public  Language.Reflection
 import public Language.Reflection.Pretty
