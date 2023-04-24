@@ -26,12 +26,8 @@ OrderedGraphLine = OrderedDependentLine TypedSplittedFunctionBody
 
 -----------------------------------------------------------------------------------------------------------------------------------
 public export
-interface GraphWeightConfig a b where
-    weightNode : a -> DependentLine b -> Weight
-
-public export
-interface GraphBiPartitioner a c where
-    doBiPartition : GraphWeightConfig b c => a -> b -> Table (DependentLine c) -> GraphBiPartition $ OrderedDependentLine c
+interface GraphWeightConfig a where
+    weightNode : a -> GraphLine -> Weight
 -----------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -46,19 +42,6 @@ interface GraphBiPartitioner a c where
 
 
 -----------------------------------------------------------------------------------------------------------------------------------
-public export
-data PartitionAlgorithms = Bisection | KerniganeLine Nat Nat
-
-public export
-algorithm : a -> (Nat -> Nat -> a) -> PartitionAlgorithms -> a
-algorithm b k Bisection = b
-algorithm b k (KerniganeLine m n) = k m n
-
-public export
-data Partitioners : Type where
-    Random : Seed -> Partitioners
-    KerniganLine : Nat -> Nat -> Partitioners
-
 public export
 data TrivaialGraphWeightConfig : Type where
     WeightAllNatConfig : Nat -> TrivaialGraphWeightConfig
@@ -73,11 +56,7 @@ data TrivaialGraphWeightConfig : Type where
 
 -----------------------------------------------------------------------------------------------------------------------------------
 public export
-implementation GraphWeightConfig TrivaialGraphWeightConfig TypedSplittedFunctionBody where
-    weightNode (WeightAllNatConfig weight) _ = NatWeight weight
-
-public export
-implementation GraphWeightConfig TrivaialGraphWeightConfig SplittedFunctionBody where
+implementation GraphWeightConfig TrivaialGraphWeightConfig where
     weightNode (WeightAllNatConfig weight) _ = NatWeight weight
 -----------------------------------------------------------------------------------------------------------------------------------
 
@@ -405,8 +384,6 @@ convertToKLGraph table = MkKLGraphNonParted $ mapIndexed table.lines createKLGra
 
     findInTable : (table : WeightedTable GraphLine) -> TypedSplittedFunctionBody -> Maybe $ Fin $ length table.lines
     findInTable (MkWeightedTable lines) element = findInTableInternal lines element
-    -- findInTable (MkWeightedTable []) _ = Nothing
-    -- findInTable (MkWeightedTable (x::xs)) element = if (fst x).function == element then Just 0 else map FS $ findInTable (MkWeightedTable xs) element
 
     findConnectedNodes : GraphLine -> List $ Fin $ length table.lines
     findConnectedNodes line = catMaybes $ map (findInTable table) line.dependencies
@@ -424,7 +401,7 @@ tryToAddOptimalOrderByDeadline (S maxAmountOfSteps) graph =
      else (graph, True) where
 
     isNodesWithoutOrderExist : KLGraphNonParted graphSize -> Bool
-    isNodesWithoutOrderExist graph = any (((==) 0) . order) graph.nodes --any (\n => n.order == 0) graph.nodes
+    isNodesWithoutOrderExist graph = any (((==) 0) . order) graph.nodes
 
     checkOrderIsNotZero : (graph : List $ KLGraphNodeNonParted graphSize) -> (connectedNode : Fin graphSize) -> Bool
     checkOrderIsNotZero []      connectedNode  = True
@@ -448,11 +425,52 @@ tryToAddOptimalOrderByDeadline (S maxAmountOfSteps) graph =
 
     addOrderToNodeIfNeeded : KLGraphNonParted graphSize -> KLGraphNonParted graphSize
     addOrderToNodeIfNeeded graph = do 
-        let maxCurrentOrder = findMaxOrder graph.nodes Z --lastOrDefault 0 $ sort $ map order graph.nodes
+        let maxCurrentOrder = findMaxOrder graph.nodes Z
         let nextOrder = increment maxCurrentOrder
         MkKLGraphNonParted $ map (markNodeWithOrderIfAllConnectedNodeAreMarked nextOrder graph) graph.nodes
 
+-- надо уменьшить колличество просмотров списка вершин
+-- что можно обрезать ?
+-- + Максимальный номер
+-- + Перепроверка списка на предмет его не размеченности
+-- Можно уменьшить на 1 обход если считать сколько вершин размечено
+-- Поиск вершин для разметки?????
+-- tmp
+public export 
+tryToAddOptimalOrderByDeadlineFast : (maxAmountOfSteps : Nat)-> KLGraphNonParted graphSize -> (KLGraphNonParted graphSize, Bool)
+tryToAddOptimalOrderByDeadlineFast maxAmountOfSteps graph = extractResult $ tryToAddOptimalOrderByDeadlineFastInternal True 1 maxAmountOfSteps graph.nodes where
 
+    extractResult : (List (KLGraphNodeNonParted graphSize), (Bool, (Nat, Bool))) -> (KLGraphNonParted graphSize, Bool)
+    extractResult (nodes, (_, (_ , isOptimalOrderFound))) = (MkKLGraphNonParted nodes, isOptimalOrderFound)
+
+    isNodesWithoutOrderExist : KLGraphNonParted graphSize -> Bool
+    isNodesWithoutOrderExist graph = any (((==) 0) . order) graph.nodes
+
+    checkOrderIsNotZero : (graph : List $ KLGraphNodeNonParted graphSize) -> (connectedNode : Fin graphSize) -> Bool
+    checkOrderIsNotZero []      connectedNode  = True
+    checkOrderIsNotZero (x::xs) connectedNode  = 
+        if x.index == connectedNode 
+         then x.order /= 0 
+         else checkOrderIsNotZero xs connectedNode
+
+    isAllConnectedNodesMarked : (nodes : List $ KLGraphNodeNonParted graphSize) -> (connectedNodes : List $ Fin graphSize) -> Bool
+    isAllConnectedNodesMarked nodes connectedNodes = all (checkOrderIsNotZero nodes) connectedNodes
+
+    markNodeWithOrderIfAllConnectedNodeAreMarkedFast : (orderMark : Nat) -> (nodes : List $ KLGraphNodeNonParted graphSize) -> (node : KLGraphNodeNonParted graphSize) -> (acc : (List $ KLGraphNodeNonParted graphSize, Bool)) ->(List $ KLGraphNodeNonParted graphSize, Bool)
+    markNodeWithOrderIfAllConnectedNodeAreMarkedFast orderMark nodes node (acc, flag) = 
+        if node.order == 0 && (isNil node.connectedNodes || isAllConnectedNodesMarked nodes node.connectedNodes)
+         then (({ order := orderMark } node)::acc, True)
+         else (node::acc, flag)
+
+    addOrderToNodeIfNeededFast : Nat -> List (KLGraphNodeNonParted graphSize) -> (List $ KLGraphNodeNonParted graphSize, Bool)
+    addOrderToNodeIfNeededFast nextOrder nodes = foldr (markNodeWithOrderIfAllConnectedNodeAreMarkedFast nextOrder nodes) ([], False) nodes
+
+    tryToAddOptimalOrderByDeadlineFastInternal : (shouldBeModified : Bool) -> (orderOnPrevItter : Nat) -> (maxAmountOfSteps : Nat)-> (List $ KLGraphNodeNonParted graphSize) -> (List $ KLGraphNodeNonParted  graphSize, Bool, Nat, Bool)
+    tryToAddOptimalOrderByDeadlineFastInternal False orderOnPrevItter _                    nodes = (nodes, False, orderOnPrevItter, True)
+    tryToAddOptimalOrderByDeadlineFastInternal True  orderOnPrevItter Z                    nodes = (nodes, False, orderOnPrevItter, False)
+    tryToAddOptimalOrderByDeadlineFastInternal _     orderOnPrevItter (S maxAmountOfSteps) nodes = 
+        let (suborderedGraph, isSomethingForModifyExist) = addOrderToNodeIfNeededFast orderOnPrevItter nodes
+        in tryToAddOptimalOrderByDeadlineFastInternal isSomethingForModifyExist (increment orderOnPrevItter) maxAmountOfSteps suborderedGraph
 
 
 
@@ -628,21 +646,9 @@ itterateOverKerniganLine (S nextMaxAmountOfItteration) partition =
     let (newPartition, flag) = itterationOfKerniganLine partition
     in isUpdated flag partition $ itterateOverKerniganLine nextMaxAmountOfItteration newPartition
 
-
-
-
-
-
-
-
-
-
-
-
-
 -- tmp
 public export
-addWeightsToGraph : GraphWeightConfig b TypedSplittedFunctionBody => 
+addWeightsToGraph : GraphWeightConfig b                           => 
                     (weighter : b)                                -> 
                     (graph : Table GraphLine)                     -> 
                         WeightedTable GraphLine
@@ -651,9 +657,14 @@ addWeightsToGraph weighter graph = MkWeightedTable $ map addWeightToLine graph.l
     addWeightToLine : GraphLine -> (GraphLine, Weight)
     addWeightToLine = dup $ weightNode weighter
 
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
 -- tmp
 public export
-bipartGraphWithKerniganlLine :  GraphWeightConfig b TypedSplittedFunctionBody => 
+bipartGraphWithKerniganlLine :  GraphWeightConfig b                           => 
                                 (maxAmountOfItteractions : Nat)               ->
                                 (maxOrdItteration : Nat)                      ->
                                 (weighter : b)                                -> 
@@ -662,7 +673,7 @@ bipartGraphWithKerniganlLine :  GraphWeightConfig b TypedSplittedFunctionBody =>
 bipartGraphWithKerniganlLine maxAmountOfItteractions maxOrdItteration weighter graph = do
     let weightedGraph = addWeightsToGraph weighter graph
     let klGraphNonPartedNoCrossRibsNotOrdered = convertToKLGraph weightedGraph
-    let (klGraphNonPartedNoCrossRibs, isGraphOptimalOrderWasFound) = tryToAddOptimalOrderByDeadline maxOrdItteration klGraphNonPartedNoCrossRibsNotOrdered
+    let (klGraphNonPartedNoCrossRibs, isGraphOptimalOrderWasFound) = tryToAddOptimalOrderByDeadlineFast maxOrdItteration klGraphNonPartedNoCrossRibsNotOrdered--tryToAddOptimalOrderByDeadline 1 klGraphNonPartedNoCrossRibsNotOrdered
     let klGraphNonParted = addCrossRibs klGraphNonPartedNoCrossRibs
     let startPartition = createStartPartition klGraphNonParted
     let partition = itterateOverKerniganLine maxAmountOfItteractions startPartition
@@ -670,18 +681,7 @@ bipartGraphWithKerniganlLine maxAmountOfItteractions maxOrdItteration weighter g
     if isGraphOptimalOrderWasFound 
      then convertToBiPartitionWithOptimalOrder weightedGraph partition
      else convertToBiPartitionWithTableOrder weightedGraph partition
-
-
-
-
-
-
-
-
-
-
-
-
+-----------------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -694,25 +694,16 @@ bipartGraphWithKerniganlLine maxAmountOfItteractions maxOrdItteration weighter g
 
 
 -----------------------------------------------------------------------------------------------------------------------------------
-MAX_AMOUNT_OF_ITTERATIONS_KL = Z--S 0
-
-
 convertTyped : (List $ DependentLine TypedSplittedFunctionBody, List $ DependentLine TypedSplittedFunctionBody) -> (Table $OrderedDependentLine TypedSplittedFunctionBody, Table $ OrderedDependentLine TypedSplittedFunctionBody)
 convertTyped (a, b) = (MkTable $ fst $ foldl addIndex ([], Z) $ reverse a, MkTable $ fst $ foldl addIndex ([], Z) $ reverse b) where
     addIndex : (List $ OrderedDependentLine TypedSplittedFunctionBody, Nat) -> DependentLine TypedSplittedFunctionBody -> (List (OrderedDependentLine TypedSplittedFunctionBody), Nat)
     addIndex (acc, index) newLine = (acc ++ [MkOrderedDependentLine index newLine], S index)
 
-convert : (List $ DependentLine SplittedFunctionBody, List $ DependentLine SplittedFunctionBody) -> (Table $ OrderedDependentLine SplittedFunctionBody, Table $ OrderedDependentLine SplittedFunctionBody)
-convert (a, b) = (MkTable $ fst $ foldl addIndex ([], Z) $ reverse a, MkTable $ fst $ foldl addIndex ([], Z) $ reverse b) where
-    addIndex : (List $ OrderedDependentLine SplittedFunctionBody, Nat) -> DependentLine SplittedFunctionBody -> (List (OrderedDependentLine SplittedFunctionBody), Nat)
-    addIndex (acc, index) newLine = (acc ++ [MkOrderedDependentLine index newLine], S index)
-
--- разбиение должно быть сбалансированным
--- STUB
-public export
-implementation GraphBiPartitioner Partitioners TypedSplittedFunctionBody where
-    doBiPartition (KerniganLine maxAmountOfItterations maxOrdItteration) weighter graph = bipartGraphWithKerniganlLine maxAmountOfItterations maxOrdItteration weighter graph
-    doBiPartition (Random seed) _ graph = 
+bisectionPartition : GraphWeightConfig b                           => 
+                     (weighter : b)                                -> 
+                     (graph : Table GraphLine)                     -> 
+                        GraphBiPartition OrderedGraphLine
+bisectionPartition _ graph = 
         uncurry MkGraphBiPartition $ 
             convertTyped $
                 foldlIndexed (partGraph $ length graph.lines) ([],[]) graph.lines where
@@ -720,21 +711,6 @@ implementation GraphBiPartitioner Partitioners TypedSplittedFunctionBody where
                     partGraph : Nat -> (Nat, (List GraphLine, List GraphLine)) -> GraphLine -> (List GraphLine, List GraphLine)
                     partGraph length (index, (first, second)) line = 
                         if index < (div length 2) then ((line::first), second) else (first, (line::second))
-
--- разбиение должно быть сбалансированным
--- STUB
--- legacy
-public export
-implementation GraphBiPartitioner Partitioners SplittedFunctionBody where
-    doBiPartition (KerniganLine seed maxOrdItteration) weighter graph = ?unsupported_hole
-    doBiPartition (Random seed) _ graph = 
-        uncurry MkGraphBiPartition $ 
-            convert $
-                foldlIndexed (partGraph $ length graph.lines) ([],[]) graph.lines where
-
-                    partGraph : Nat -> (Nat, (List $ DependentLine SplittedFunctionBody, List $ DependentLine SplittedFunctionBody)) -> DependentLine SplittedFunctionBody -> (List $ DependentLine SplittedFunctionBody, List $ DependentLine SplittedFunctionBody)
-                    partGraph length (index, (first, second)) line = 
-                        if index < (div length 2) then ((line::first), second) else (first, (line::second))
 -----------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -744,18 +720,44 @@ implementation GraphBiPartitioner Partitioners SplittedFunctionBody where
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -----------------------------------------------------------------------------------------------------------------------------------
-public export
-RandomBiPartitioner : ?
-RandomBiPartitioner = Random 0
-
-public export
-KLBiPartitioner : ?
-KLBiPartitioner = KerniganLine
-
 public export
 WeightAll1 : ?
 WeightAll1 = WeightAllNatConfig 1
+
+export
+record Partitioner a where
+    constructor WrapFunction
+    func : GraphWeightConfig a => a -> Table GraphLine -> GraphBiPartition OrderedGraphLine
+
+public export
+findGraphPartition : GraphWeightConfig a => Partitioner a -> a -> Table GraphLine -> GraphBiPartition OrderedGraphLine
+findGraphPartition f = f.func
+
+public export
+BisectionPartitioner : Partitioner a
+BisectionPartitioner = WrapFunction bisectionPartition
+
+public export
+KerniganLinParitioner : Nat -> Nat -> Partitioner a
+KerniganLinParitioner a b = WrapFunction $ bipartGraphWithKerniganlLine a b
 
 -- Нужен метод который будет чистить зависимости после разбиения
 -- то есть удалять зависимость на текущий подграф

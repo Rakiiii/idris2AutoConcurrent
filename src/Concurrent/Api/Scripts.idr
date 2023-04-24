@@ -7,7 +7,6 @@ import public Concurrent.Types.Functions
 import public Concurrent.Types.Execution
 import public Concurrent.Types.DataFlowGraph
 
-import public Concurrent.Parser.Splitter
 import public Concurrent.Parser.GraphConstructor
 
 import public Concurrent.Partition.GraphPartitioner
@@ -40,38 +39,47 @@ import public Prelude
 
 -------------------- Scripts -----------------------------------------------------------------
 public export 
-makeFunctionConcurrent : (algorithm : PartitionAlgorithms)      ->
-                         (functionName : String)                -> 
-                         (a : Type)                             -> 
-                         (b : Type)                             -> 
-                         (ConcurrentWrap a -> ConcurrentWrap b) -> 
-                            Elab ()
-makeFunctionConcurrent alg functionName inputType outputArgument function = do 
+makeFunctionConcurrent : 
+                                  (partitioner : Partitioner TrivaialGraphWeightConfig) ->
+                                  (functionName : String)                               -> 
+                                  (a : Type)                                            -> 
+                                  (b : Type)                                            -> 
+                                  (ConcurrentWrap a -> ConcurrentWrap b)                -> 
+                                    Elab ()
+makeFunctionConcurrent partitioner functionName inputType outputArgument function = do 
     let typedStub : (List $ List Decl, List Decl) = ([], [])
-    let partitioner = algorithm RandomBiPartitioner KLBiPartitioner alg
     functionBody <- Reflection.quote function
     outputArgumentType <- Reflection.quote outputArgument
     let res = parseLambdaFunction functionBody
                     `rxMapInternalFst` List.reverse
                     `rxMapInternalFst` constructDataDependencieGraph
-                    `rxMapInternalFst` dup (simplifyDependencies . doBiPartition partitioner WeightAll1)
+                    `rxMapInternalFst` dup (simplifyDependencies . findGraphPartition partitioner WeightAll1)
                     `rxMapInternalFst` (uncurry generateFunctionBodies)
-                    `rxMap` (uncurry4 composeConcurrentFunctionsAndWrap)
+                    `rxMap` (uncurrySpecial composeConcurrentFunctionsAndWrap)
                     `rxJoin` ()
                     `rxMap` composeInitializationFunctionAndWrap outputArgumentType
                     `rxJoinEitherPair` ()
                     `rxFlatMap` either (const typedStub) id
 
     logMsg "decl" 0 "before first decl"
+    logMsg "decl" 0 ""
+    logMsg "decl" 0 "------------------------------------------------------------------------------------------------------------"
+    logMsg "decl" 0 ""
     for_ (join $ fst res) $ \x => do 
         logMsg "decl" 0 ("delarin " ++ show x)
         logMsg "decl" 0 ""
+        logMsg "decl" 0 "------------------------------------------------------------------------------------------------------------"
         logMsg "decl" 0 ""
         declare $ pure x
     logMsg "decl" 0 "after first decl"
+    logMsg "decl" 0 ""
+    logMsg "decl" 0 "------------------------------------------------------------------------------------------------------------"
+    logMsg "decl" 0 ""
     declare $ snd res
     logMsg "decl" 0 "after second decl"
-    -- pure () 
+    logMsg "decl" 0 ""
+    logMsg "decl" 0 "------------------------------------------------------------------------------------------------------------"
+    logMsg "decl" 0 ""
     where
 
 
@@ -110,6 +118,21 @@ makeFunctionConcurrent alg functionName inputType outputArgument function = do
     uncurry4 : (a -> b -> c -> d -> e) -> ((a, (b, c)), d) -> e
     uncurry4 f ((a, (b, c)), d) = f a b c d
 
+    uncurrySpecial : (Table GraphLine -> GraphBiPartition OrderedGraphLine -> List TTImp -> InputArgument -> Either Error ArgumentWrapper) -> ((Table GraphLine, (GraphBiPartition OrderedGraphLine, List TTImp)), InputArgument) -> Either Error ArgumentWrapper
+    uncurrySpecial f ((a, (b, c)), d) = f a b c d 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -118,30 +141,28 @@ makeFunctionConcurrent alg functionName inputType outputArgument function = do
 
 
 public export 
-makeFunctionConcurrent' : (algorithm : PartitionAlgorithms)      ->
-                         (functionName : String)                -> 
-                         (a : Type)                             -> 
-                         (b : Type)                             -> 
-                         (ConcurrentWrap a -> ConcurrentWrap b) -> 
-                            Elab (List $ List Decl, List Decl)
-makeFunctionConcurrent' alg functionName inputType outputArgument function = do 
+makeFunctionConcurrent' : 
+                                  (partitioner : Partitioner TrivaialGraphWeightConfig)          ->
+                                  (functionName : String)                -> 
+                                  (a : Type)                             -> 
+                                  (b : Type)                             -> 
+                                  (ConcurrentWrap a -> ConcurrentWrap b) -> 
+                                    Elab (List $ List Decl, List Decl)
+makeFunctionConcurrent' partitioner functionName inputType outputArgument function = do 
     let typedStub : (List $ List Decl, List Decl) = ([], [])
-    let partitioner = algorithm RandomBiPartitioner KLBiPartitioner alg
     functionBody <- Reflection.quote function
     outputArgumentType <- Reflection.quote outputArgument
     let res = parseLambdaFunction functionBody
                     `rxMapInternalFst` List.reverse
                     `rxMapInternalFst` constructDataDependencieGraph
-                    `rxMapInternalFst` dup (simplifyDependencies . doBiPartition partitioner WeightAll1)
+                    `rxMapInternalFst` dup (simplifyDependencies . findGraphPartition partitioner WeightAll1)
                     `rxMapInternalFst` (uncurry generateFunctionBodies)
-                    `rxMap` (uncurry4 composeConcurrentFunctionsAndWrap)
+                    `rxMap` (uncurrySpecial composeConcurrentFunctionsAndWrap)
                     `rxJoin` ()
                     `rxMap` composeInitializationFunctionAndWrap outputArgumentType
                     `rxJoinEitherPair` ()
                     `rxFlatMap` either (const typedStub) id
 
-    -- traverse_ declare $ fst res
-    -- declare $ snd res
     pure (fst res, snd res)
     where
 
@@ -180,3 +201,6 @@ makeFunctionConcurrent' alg functionName inputType outputArgument function = do
 
     uncurry4 : (a -> b -> c -> d -> e) -> ((a, (b, c)), d) -> e
     uncurry4 f ((a, (b, c)), d) = f a b c d
+
+    uncurrySpecial : (Table GraphLine -> GraphBiPartition OrderedGraphLine -> List TTImp -> InputArgument -> Either Error ArgumentWrapper) -> ((Table GraphLine, (GraphBiPartition OrderedGraphLine, List TTImp)), InputArgument) -> Either Error ArgumentWrapper
+    uncurrySpecial f ((a, (b, c)), d) = f a b c d
