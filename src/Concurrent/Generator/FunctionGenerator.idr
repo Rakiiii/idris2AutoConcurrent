@@ -222,7 +222,7 @@ createFunctionDeclarationArguments startArgumentType (MkTable lines) =
     createFunctionDeclarationArgumentsInternal : (startArgumentType : TTImp) -> List TypedSplittedFunctionBody -> Errorable TTImp
     createFunctionDeclarationArgumentsInternal startArgumentType [] = error "Cant construct type for function declaration"
     createFunctionDeclarationArgumentsInternal startArgumentType (lastArgument::[]) = 
-        Right $ (explicitArgChannel lastArgument.returnType.type) .-> explicitArg startArgumentType .-> `(IO ()) 
+        Right $ (explicitArgChannel lastArgument.returnType.type) .-> explicitArg startArgumentType .-> `(IO Unit) 
 
     createFunctionDeclarationArgumentsInternal startArgumentType (argument::arguments) =
         (createFunctionDeclarationArgumentsInternal startArgumentType arguments

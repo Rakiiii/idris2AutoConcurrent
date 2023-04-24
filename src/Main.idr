@@ -12,7 +12,6 @@ import public Concurrent.Types.Execution
 import public Concurrent.Types.DataFlowGraph
 
 import public Concurrent.Parser.Splitter
-import public Concurrent.Parser.LetSplitter
 import public Concurrent.Parser.GraphConstructor
 
 import public Concurrent.Partition.GraphPartitioner
@@ -234,11 +233,17 @@ testGenerateInitFunctionDeclaration functionName inputType outputArgument functi
 checkDeclarationInitFunctionExist : Integer -> IO Integer
 checkDeclarationInitFunctionExist = testInitFunctionDeclaration
 
-%runElab makeFunctionConcurrent Bisection "testMakeFunctionConcurrentBI" Integer Integer $ \saw =>
-    let result1 = concurrentFunction1 << saw
-    in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
-    in let result3 = concurrentFunction3 << result2
-    in concurrentFunction4 << concat1 result1 result3 concatArguments
+-- %runElab makeFunctionConcurrent Bisection "testMakeFunctionConcurrentBI" Integer Integer $ \saw =>
+--     let result1 = concurrentFunction1 << saw
+--     in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
+--     in let result3 = concurrentFunction3 << result2
+--     in concurrentFunction4 << concat1 result1 result3 concatArguments
+
+-- t = %runElab makeFunctionConcurrent' Bisection "testMakeFunctionConcurrentBI" Integer Integer $ \saw =>
+--     let result1 = concurrentFunction1 << saw
+--     in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
+--     in let result3 = concurrentFunction3 << result2
+--     in concurrentFunction4 << concat1 result1 result3 concatArguments
 
 %runElab makeFunctionConcurrent (KerniganeLine 10 4) "testMakeFunctionConcurrentKL" Integer Integer $ \saw =>
     let result1 = concurrentFunction1 << saw
@@ -275,7 +280,7 @@ executeConcurrent functionName inputType _ function = do
 
 covering
 testExecuteConcurrentDebug : (algorithm : PartitionAlgorithms) -> (functionName : String) -> (a : Type) -> (b : Type) -> (ConcurrentWrap a -> ConcurrentWrap b) -> 
-                                Elab ()--$ Table GraphLine--$ GraphBiPartition OrderedGraphLine--$ List $ List Decl--TTImp--TypedSplittedFunctionBody--Table SplittedFunctionBody--List SplittedFunctionBody --Errorable (List SplittedFunctionBody, ArgumentType) --List TTImp
+                                Elab (List $ List Decl, List Decl)--$ Table GraphLine--$ GraphBiPartition OrderedGraphLine--$ List $ List Decl--TTImp--TypedSplittedFunctionBody--Table SplittedFunctionBody--List SplittedFunctionBody --Errorable (List SplittedFunctionBody, ArgumentType) --List TTImp
 testExecuteConcurrentDebug alg functionName inputType outputArgument function = do 
     let localStub : Table GraphLine := MkTable []
     let inStub : InputArgument := MkInputArgument `(STUB) ""
@@ -325,7 +330,7 @@ testExecuteConcurrentDebug alg functionName inputType outputArgument function = 
     let initStub : List Decl := []
     let init = either (const initStub) id initErr
 
-    pure ()
+    pure (Builtin.fst composedFunctions, init)
     -- traverse_ declare $ Builtin.fst composedFunctions
     -- let m = partWeight klGraphNonParted
     -- let m' = sum $ map weight klGraphNonParted.nodes
@@ -380,12 +385,12 @@ printDebug g = do
 -- brokeElabInstance : KLGraph 4
 -- brokeElabInstance = %runElab brokeElab grC
 
-testExecuteConcurrentObj : ?
-testExecuteConcurrentObj = %runElab testExecuteConcurrentDebug (KerniganeLine 1 4) "concurrentFunction" Integer Integer $ \saw =>
-    let result1 = concurrentFunction1 << saw
-    in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
-    in let result3 = concurrentFunction3 << result2
-    in concurrentFunction4 << concat1 result1 result3 concatArguments
+-- testExecuteConcurrentObj : ?
+-- testExecuteConcurrentObj = %runElab testExecuteConcurrentDebug (KerniganeLine 1 4) "concurrentFunction" Integer Integer $ \saw =>
+--     let result1 = concurrentFunction1 << saw
+--     in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
+--     in let result3 = concurrentFunction3 << result2
+--     in concurrentFunction4 << concat1 result1 result3 concatArguments
 
 -- testExecuteConcurrentObj : ?
 -- testExecuteConcurrentObj = 

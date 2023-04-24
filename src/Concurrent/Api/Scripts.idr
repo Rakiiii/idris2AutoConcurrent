@@ -8,7 +8,6 @@ import public Concurrent.Types.Execution
 import public Concurrent.Types.DataFlowGraph
 
 import public Concurrent.Parser.Splitter
-import public Concurrent.Parser.LetSplitter
 import public Concurrent.Parser.GraphConstructor
 
 import public Concurrent.Partition.GraphPartitioner
@@ -63,8 +62,15 @@ makeFunctionConcurrent alg functionName inputType outputArgument function = do
                     `rxJoinEitherPair` ()
                     `rxFlatMap` either (const typedStub) id
 
-    traverse_ declare $ fst res
+    logMsg "decl" 0 "before first decl"
+    for_ (join $ fst res) $ \x => do 
+        logMsg "decl" 0 ("delarin " ++ show x)
+        logMsg "decl" 0 ""
+        logMsg "decl" 0 ""
+        declare $ pure x
+    logMsg "decl" 0 "after first decl"
     declare $ snd res
+    logMsg "decl" 0 "after second decl"
     -- pure () 
     where
 
@@ -106,3 +112,71 @@ makeFunctionConcurrent alg functionName inputType outputArgument function = do
 
 
 
+
+
+
+
+
+public export 
+makeFunctionConcurrent' : (algorithm : PartitionAlgorithms)      ->
+                         (functionName : String)                -> 
+                         (a : Type)                             -> 
+                         (b : Type)                             -> 
+                         (ConcurrentWrap a -> ConcurrentWrap b) -> 
+                            Elab (List $ List Decl, List Decl)
+makeFunctionConcurrent' alg functionName inputType outputArgument function = do 
+    let typedStub : (List $ List Decl, List Decl) = ([], [])
+    let partitioner = algorithm RandomBiPartitioner KLBiPartitioner alg
+    functionBody <- Reflection.quote function
+    outputArgumentType <- Reflection.quote outputArgument
+    let res = parseLambdaFunction functionBody
+                    `rxMapInternalFst` List.reverse
+                    `rxMapInternalFst` constructDataDependencieGraph
+                    `rxMapInternalFst` dup (simplifyDependencies . doBiPartition partitioner WeightAll1)
+                    `rxMapInternalFst` (uncurry generateFunctionBodies)
+                    `rxMap` (uncurry4 composeConcurrentFunctionsAndWrap)
+                    `rxJoin` ()
+                    `rxMap` composeInitializationFunctionAndWrap outputArgumentType
+                    `rxJoinEitherPair` ()
+                    `rxFlatMap` either (const typedStub) id
+
+    -- traverse_ declare $ fst res
+    -- declare $ snd res
+    pure (fst res, snd res)
+    where
+
+
+
+    generateFunctionBodies : (graph : Table $ DependentLine TypedSplittedFunctionBody) -> 
+                             (partition : GraphBiPartition $ OrderedDependentLine TypedSplittedFunctionBody) -> 
+                             (
+                                Table $ DependentLine TypedSplittedFunctionBody, 
+                                GraphBiPartition $ OrderedDependentLine TypedSplittedFunctionBody, 
+                                List TTImp
+                             )
+    generateFunctionBodies graph partition = 
+        let functionsBodies : List TTImp := mapT generateFunctionBody partition 
+        in (graph, partition, functionsBodies)
+
+
+
+    composeConcurrentFunctionsAndWrap : (graph : Table $ DependentLine TypedSplittedFunctionBody) ->
+                                        (partition : GraphBiPartition $ OrderedDependentLine TypedSplittedFunctionBody) ->
+                                        (bodies : List TTImp) -> 
+                                        (inputArg : InputArgument) ->
+                                        Errorable ArgumentWrapper
+    composeConcurrentFunctionsAndWrap graph partition bodies inputArg = 
+        composeConcurrentFunctions inputArg functionName partition graph bodies
+            `rxMap` (\pair => MkArgumentWrapper (fst pair) (snd pair) inputArg graph)
+
+
+
+    composeInitializationFunctionAndWrap : TTImp -> ArgumentWrapper -> (List $ List Decl, ErrorableList Decl) 
+    composeInitializationFunctionAndWrap outputArgumentType wrapper = 
+        let init = composeInitializationFunction functionName wrapper.startArgument outputArgumentType wrapper.functionNames wrapper.graph
+        in (wrapper.functionDeclarations, init)
+
+
+
+    uncurry4 : (a -> b -> c -> d -> e) -> ((a, (b, c)), d) -> e
+    uncurry4 f ((a, (b, c)), d) = f a b c d
