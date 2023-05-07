@@ -27,4 +27,4 @@ public export
 constructDataDependencieGraph : List TypedSplittedFunctionBody -> Table $ DependentLine TypedSplittedFunctionBody
 constructDataDependencieGraph list = foldl (constructDataFlowGraphInternal list) (MkTable []) list where
     constructDataFlowGraphInternal : List TypedSplittedFunctionBody -> Table (DependentLine TypedSplittedFunctionBody) -> TypedSplittedFunctionBody -> Table $ DependentLine TypedSplittedFunctionBody
-    constructDataFlowGraphInternal functions table function = add (dependentLine function functions) table --MkTable $ add (dependentLine function functions) table.lines
+    constructDataFlowGraphInternal functions table function = add (dependentLine function functions) table 

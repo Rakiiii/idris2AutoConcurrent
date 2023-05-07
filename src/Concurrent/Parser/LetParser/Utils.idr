@@ -46,12 +46,12 @@ record CallKey where
 
 public export
 appendNumberOfCalls : CallKey -> CallKey
-appendNumberOfCalls key = {numberOfCalls := key.numberOfCalls} key 
+appendNumberOfCalls key = { numberOfCalls := key.numberOfCalls } key 
 
 
 public export
 setParsed : Bool -> CallKey -> CallKey
-setParsed isParsed key = {isFunctionParsed := isParsed} key 
+setParsed isParsed key = { isFunctionParsed := isParsed } key 
 
 
 public export

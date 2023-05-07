@@ -4,19 +4,21 @@ module Concurrent.Api.ConcurrentDsl
 public export
 data ConcurrentWrap : Type -> Type where
 
-export
+public export
 concurrentOperator : (a -> b) -> ConcurrentWrap a -> ConcurrentWrap b
+concurrentOperator f x = ?concurrentOperator_rhs
 
 infixr 10 <<
-export
+public export
 (<<) : (a -> b) -> ConcurrentWrap a -> ConcurrentWrap b
 (<<) = concurrentOperator
 
 
 -------------------CREATE MANY COMBINATIONS OF ARGUMENTS---------------------
 
-export
+public export
 concat1 : ConcurrentWrap a -> ConcurrentWrap b -> (a -> b -> c) -> ConcurrentWrap c
+concat1 x y f = ?concat1_rhs
 
 export
 concat2 : ConcurrentWrap a -> ConcurrentWrap b -> ConcurrentWrap c -> (a -> b -> c -> d) -> ConcurrentWrap d
@@ -33,6 +35,7 @@ concat5 : ConcurrentWrap a -> ConcurrentWrap b -> ConcurrentWrap c -> Concurrent
 export
 concat6 : ConcurrentWrap a -> ConcurrentWrap b -> ConcurrentWrap c -> ConcurrentWrap d -> ConcurrentWrap e -> ConcurrentWrap f -> ConcurrentWrap g -> (a -> b -> c -> d -> e -> f -> g -> k) -> ConcurrentWrap k
 
-
+export
+concat7 : ConcurrentWrap a -> ConcurrentWrap b -> ConcurrentWrap c -> ConcurrentWrap d -> ConcurrentWrap e -> ConcurrentWrap f -> ConcurrentWrap g -> ConcurrentWrap k -> (a -> b -> c -> d -> e -> f -> g -> k -> h) -> ConcurrentWrap h
 
 

@@ -1,7 +1,5 @@
 module Main
 
--- IMustUnify
-
 import public Concurrent.Api.ConcurrentDsl
 
 import public Concurrent.Parser.LetParser.Utils

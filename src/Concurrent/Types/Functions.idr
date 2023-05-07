@@ -198,6 +198,9 @@ implementation Eq TypedSplittedFunctionBody where
 ----------------------------------------------------------------------------------------------------------------------------------------------------
 CHANNEL_NAME_PART = "channel"
 
+argNames : ArgumentConstructor -> List String
+argNames (Parsed _ _ xs) = xs
+
 public export
 interface Channalable a where
     channelName : a -> Name
@@ -205,13 +208,13 @@ interface Channalable a where
 
 public export
 implementation Channalable SplittedFunctionBody where
-    channelName s = UN $ Basic $ CHANNEL_NAME_PART ++ "_" ++ (stringOrEmpty $ extractMaybeNameString $ s.function.function)
-    channelNameStr s = CHANNEL_NAME_PART ++ "_" ++ (stringOrEmpty $ extractMaybeNameString $ s.function.function)
+    channelName s = UN $ Basic $ CHANNEL_NAME_PART ++ "_" ++ (stringOrEmpty $ extractMaybeNameString $ s.function.function) ++ "_" ++ concatAll (argNames s.function.argumentConstructor) "_"
+    channelNameStr s = CHANNEL_NAME_PART ++ "_" ++ (stringOrEmpty $ extractMaybeNameString $ s.function.function) ++ "_" ++ concatAll (argNames s.function.argumentConstructor) "_"
 
 public export
 implementation Channalable TypedSplittedFunctionBody where
-    channelName s = UN $ Basic $ CHANNEL_NAME_PART ++ "_" ++ (stringOrEmpty $ extractMaybeNameString $ s.function.function)
-    channelNameStr s = CHANNEL_NAME_PART ++ "_" ++ (stringOrEmpty $ extractMaybeNameString $ s.function.function)
+    channelName s = UN $ Basic $ CHANNEL_NAME_PART ++ "_" ++ (stringOrEmpty $ extractMaybeNameString $ s.function.function) ++ "_" ++ concatAll (argNames s.function.argumentConstructor) "_"
+    channelNameStr s = CHANNEL_NAME_PART ++ "_" ++ (stringOrEmpty $ extractMaybeNameString $ s.function.function) ++ "_" ++ concatAll (argNames s.function.argumentConstructor) "_"
 
 public export
 makeTyped : SplittedFunctionBody -> ArgumentType -> TypedSplittedFunctionBody

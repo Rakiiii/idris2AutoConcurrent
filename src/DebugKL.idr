@@ -104,6 +104,40 @@ gr = MkKLGraphNonParted [
     MkKLGraphNodeNonParted 3 [1, 2] 1 4
 ]
 
+genGraph : KLGraphNonParted 30
+genGraph = MkKLGraphNonParted [
+    MkKLGraphNodeNonParted 0 [10, 13, 13, 28] 1 0,
+    MkKLGraphNodeNonParted 1 [3, 12] 1 0,
+    MkKLGraphNodeNonParted 2 [10, 15, 26] 1 0,
+    MkKLGraphNodeNonParted 3 [6, 29] 1 0,
+    MkKLGraphNodeNonParted 4 [7, 21, 21, 28] 1 0,
+    MkKLGraphNodeNonParted 5 [16, 24] 1 0,
+    MkKLGraphNodeNonParted 6 [8, 27] 1 0,
+    MkKLGraphNodeNonParted 7 [4, 24, 26] 1 0,
+    MkKLGraphNodeNonParted 8 [16, 21, 22] 1 0,
+    MkKLGraphNodeNonParted 9 [12, 15, 25, 27] 1 0,
+    MkKLGraphNodeNonParted 10 [2] 1 0,
+    MkKLGraphNodeNonParted 11 [12] 1 0,
+    MkKLGraphNodeNonParted 12 [14, 27, 28] 1 0,
+    MkKLGraphNodeNonParted 13 [0, 19, 25] 1 0,
+    MkKLGraphNodeNonParted 14 [12, 20] 1 0,
+    MkKLGraphNodeNonParted 15 [22, 23, 24] 1 0,
+    MkKLGraphNodeNonParted 16 [8] 1 0,
+    MkKLGraphNodeNonParted 17 [19, 23, 26] 1 0,
+    MkKLGraphNodeNonParted 18 [24] 1 0,
+    MkKLGraphNodeNonParted 19 [13, 17] 1 0,
+    MkKLGraphNodeNonParted 20 [24, 25] 1 0,
+    MkKLGraphNodeNonParted 21 [4, 24, 29] 1 0,
+    MkKLGraphNodeNonParted 22 [15] 1 0,
+    MkKLGraphNodeNonParted 23 [17, 26] 1 0,
+    MkKLGraphNodeNonParted 24 [5, 7] 1 0,
+    MkKLGraphNodeNonParted 25 [9, 20] 1 0,
+    MkKLGraphNodeNonParted 26 [7] 1 0,
+    MkKLGraphNodeNonParted 27 [9] 1 0,
+    MkKLGraphNodeNonParted 28 [0] 1 0,
+    MkKLGraphNodeNonParted 29 [3, 21] 1 0
+]
+
 grS : KLGraph 4
 grS = createStartPartition gr
 

@@ -175,10 +175,6 @@ record MoveCoff (graphSize : Nat) where
 
 
 
-
-
-
-
 -- tmp
 public export
 implementation Show Part where
@@ -621,6 +617,29 @@ findMovePair xs =
                 Just (_ , 0)     => Nothing
                 Just (n , coff)  => if coff > 0 then Just $ pair x.node n else Nothing
 
+public export
+findMoveCoffsForNodeFast : KLGraphNode graphSize -> KLGraph graphSize -> (KLGraphNode graphSize, Integer)
+findMoveCoffsForNodeFast node graph = foldl maxCoffForNode (node, -1) graph.nodes where
+    maxCoffForNode : (KLGraphNode graphSize, Integer) -> KLGraphNode graphSize -> (KLGraphNode graphSize, Integer)
+    maxCoffForNode ctx checkNode = let newCoff = countCoffForNode node checkNode
+        in if snd newCoff > snd ctx then newCoff else ctx
+
+-- tmp 
+public export
+findMoveCoffsFast : KLGraph graphSize -> Maybe (KLGraphNode graphSize, KLGraphNode graphSize, Integer)
+findMoveCoffsFast (MkKLGraph []) = Nothing
+findMoveCoffsFast (MkKLGraph [x]) = Nothing
+findMoveCoffsFast graph@(MkKLGraph (node::xs)) = Just $ foldl countMoveCoffsFastInternal (node, node, -1) graph.nodes where
+    countMoveCoffsFastInternal : (KLGraphNode graphSize, KLGraphNode graphSize, Integer) -> KLGraphNode graphSize -> (KLGraphNode graphSize, KLGraphNode graphSize, Integer)
+    countMoveCoffsFastInternal ctx currentNode = let newCoff = findMoveCoffsForNodeFast node graph
+        in if snd newCoff > (snd $ snd ctx) then (currentNode, newCoff) else ctx
+
+-- tmp
+public export 
+resolveMovePair : Maybe (KLGraphNode graphSize, KLGraphNode graphSize, Integer) -> Maybe (KLGraphNode graphSize, KLGraphNode graphSize)
+resolveMovePair Nothing = Nothing
+resolveMovePair (Just (n1, n2, coff)) = if coff > 0 then Just (n1, n2) else Nothing
+
 -- tmp 
 public export
 data IsUpdated = Yes | No
@@ -637,6 +656,23 @@ itterationOfKerniganLine partition = do
     let flipMove = flip moveNodes
     let maybeNewPartition = map (flipMove partition) movePair
     maybe (partition, No) (dup $ const Yes) maybeNewPartition
+
+-- tmp 
+public export
+itterationOfKerniganLineFast : (partiotion : KLGraph graphSize) -> (KLGraph graphSize, IsUpdated)
+itterationOfKerniganLineFast partition = do 
+    let movePair = resolveMovePair $ findMoveCoffsFast partition
+    let flipMove = flip moveNodes
+    let maybeNewPartition = map (flipMove partition) movePair
+    maybe (partition, No) (dup $ const Yes) maybeNewPartition
+
+-- tmp 
+public export
+itterateOverKerniganLineFast : (maxAmountOfItterations : Nat) -> (partiotion : KLGraph graphSize) -> KLGraph graphSize
+itterateOverKerniganLineFast Z partiotion = partiotion
+itterateOverKerniganLineFast (S nextMaxAmountOfItteration) partition = 
+    let (newPartition, flag) = itterationOfKerniganLineFast partition
+    in isUpdated flag partition $ itterateOverKerniganLineFast nextMaxAmountOfItteration newPartition
 
 -- tmp 
 public export
@@ -676,7 +712,9 @@ bipartGraphWithKerniganlLine maxAmountOfItteractions maxOrdItteration weighter g
     let (klGraphNonPartedNoCrossRibs, isGraphOptimalOrderWasFound) = tryToAddOptimalOrderByDeadlineFast maxOrdItteration klGraphNonPartedNoCrossRibsNotOrdered--tryToAddOptimalOrderByDeadline 1 klGraphNonPartedNoCrossRibsNotOrdered
     let klGraphNonParted = addCrossRibs klGraphNonPartedNoCrossRibs
     let startPartition = createStartPartition klGraphNonParted
-    let partition = itterateOverKerniganLine maxAmountOfItteractions startPartition
+    let partition = itterateOverKerniganLineFast maxAmountOfItteractions startPartition--itterateOverKerniganLine maxAmountOfItteractions startPartition
+    -- let partition = itterateOverKerniganLine maxAmountOfItteractions startPartition
+    -- TODO:: Добавлять порядок вызова функций на основе klGraphNonPartedNoCrossRibs
     -- TODO:: Добавлять порядок вызова функций на основе klGraphNonPartedNoCrossRibs
     if isGraphOptimalOrderWasFound 
      then convertToBiPartitionWithOptimalOrder weightedGraph partition

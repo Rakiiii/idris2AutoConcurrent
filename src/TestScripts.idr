@@ -221,7 +221,7 @@ checkDeclarationInitFunctionExist = testInitFunctionDeclaration
     in let result3 = concurrentFunction3 << result2
     in concurrentFunction4 << concat1 result1 result3 concatArguments
 
-%runElab makeFunctionConcurrent(KerniganLinParitioner 10 5) "testMakeFunctionConcurrentKL" Integer Integer $ \saw =>
+%runElab makeFunctionConcurrent (KerniganLinParitioner 10 5) "testMakeFunctionConcurrentKL" Integer Integer $ \saw =>
     let result1 = concurrentFunction1 << saw
     in let result2 = concurrentFunction2 << concat1 saw result1 concatArguments
     in let result3 = concurrentFunction3 << result2
@@ -236,8 +236,8 @@ checkDeclarationInitFunctionExist = testInitFunctionDeclaration
 
 
 
-printTestFunctionResult : Show a => IO a -> IO ()
-printTestFunctionResult ioX = do
+printIO : Show a => IO a -> IO ()
+printIO ioX = do
     x <- ioX
     printLn $ show x
 

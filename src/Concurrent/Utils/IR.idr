@@ -43,6 +43,7 @@ valueOrDefault : a -> Maybe a -> a
 valueOrDefault _ (Just v) = v
 valueOrDefault v Nothing  = v
 
+public export
 concatAll : List String -> String -> String
 concatAll [] _ = ""
 concatAll (x::xs) separator = x ++ separator ++ (concatAll xs separator)
