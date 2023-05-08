@@ -1,5 +1,8 @@
 module Concurrent.Api.ConcurrentDsl
 
+public export
+runConcurrent : IO a -> a
+runConcurrent = unsafePerformIO
 -----------------------------------------------------------------DSL----------------------------------------------------------------
 public export
 data ConcurrentWrap : Type -> Type where

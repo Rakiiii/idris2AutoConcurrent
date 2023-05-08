@@ -159,7 +159,8 @@ makeFunctionConcurrent' :
                                   (a : Type)                             -> 
                                   (b : Type)                             -> 
                                   (ConcurrentWrap a -> ConcurrentWrap b) -> 
-                                    Elab (List $ List Decl, List Decl)
+                                    -- Elab (List $ List Decl, List Decl)
+                                    Elab $ List Decl
 makeFunctionConcurrent' partitioner functionName inputType outputArgument function = do 
     let typedStub : (List $ List Decl, List Decl) = ([], [])
     functionBody <- Reflection.quote function
@@ -175,7 +176,8 @@ makeFunctionConcurrent' partitioner functionName inputType outputArgument functi
                     `rxJoinEitherPair` ()
                     `rxFlatMap` either (const typedStub) id
 
-    pure (fst res, snd res)
+    -- pure (fst res, snd res)
+    pure $ (join $ fst res) ++ snd res
     where
 
 
