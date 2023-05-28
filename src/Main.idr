@@ -40,7 +40,6 @@ import public Prelude
 
 import public Concurrent.Api.Scripts
 
-
 %default covering
 %language ElabReflection
 

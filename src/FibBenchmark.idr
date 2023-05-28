@@ -270,9 +270,9 @@ fibBenchVerySmall' : ConcurrentWrap Nat -> ConcurrentWrap Nat
 fibBenchVerySmall' saw =
   let v9 = fib0 << saw
   in let v0 = fib1 << saw
-  in let v7 = fib3 << concat1 saw v9 (+)
+  in let v7 = fib3 << map2 saw v9 (+)
   in let v2 = fib2 << v7
-  in fib4 << concat3 v0 v2 saw saw plus4
+  in fib4 << map4 v0 v2 saw saw plus4
 
 -- %runElab makeFunctionConcurrent (KerniganLinParitioner 5 20) "fibBenchConc" Nat Nat $ \saw =>
 --   let v0 = fib0 << concat1 saw saw (+)
@@ -332,13 +332,13 @@ fibBenchVerySmall' saw =
 tmpBench6 : ConcurrentWrap Nat -> ConcurrentWrap Nat
 tmpBench6 saw =
   let v10 = fib10 << saw 
-  in let v5 = fib5 << concat1 v10 saw plus2
+  in let v5 = fib5 << map2 v10 saw plus2
   in let v13 = fib13 << v5 
 
 
-  in let v6 = fib6 << concat1 saw saw plus2 
-  in let v7 = fib7 << concat1 saw v6 plus2
-  in fib4 << concat1 v13 v7 plus2
+  in let v6 = fib6 << map2 saw saw plus2 
+  in let v7 = fib7 << map2 saw v6 plus2
+  in fib4 << map2 v13 v7 plus2
 
 -- %runElab makeFunctionConcurrent (KerniganLinParitioner 5 10) "fibBenchConc7" Nat Nat $ \saw =>
 --   let v10 = fib10 << saw 
@@ -354,14 +354,14 @@ tmpBench6 saw =
 tmpBench7 : ConcurrentWrap Nat -> ConcurrentWrap Nat
 tmpBench7 saw =
   let v10 = fib10 << saw 
-  in let v5 = fib5 << concat1 v10 saw plus2
+  in let v5 = fib5 << map2 v10 saw plus2
   in let v13 = fib13 << v5 
 
 
-  in let v6 = fib6 << concat1 saw saw plus2 
-  in let v7 = fib7 << concat1 saw v6 plus2
+  in let v6 = fib6 << map2 saw saw plus2 
+  in let v7 = fib7 << map2 saw v6 plus2
   in let v9 = fib9 <<  v7
-  in fib4 << concat1 v13 v9 plus2
+  in fib4 << map2 v13 v9 plus2
 
 -- %runElab makeFunctionConcurrent (KerniganLinParitioner 5 10) "fibBenchConc8" Nat Nat $ \saw =>
 --   let v10 = fib10 << saw 
@@ -378,15 +378,15 @@ tmpBench7 saw =
 tmpBench8 : ConcurrentWrap Nat -> ConcurrentWrap Nat
 tmpBench8 saw =
   let v10 = fib10 << saw 
-  in let v5 = fib5 << concat1 v10 saw plus2
+  in let v5 = fib5 << map2 v10 saw plus2
   in let v13 = fib13 << v5 
 
 
-  in let v6 = fib6 << concat1 saw saw plus2 
-  in let v7 = fib7 << concat1 saw v6 plus2
-  in let v2 = fib2 << concat3 saw v6 saw saw plus4
+  in let v6 = fib6 << map2 saw saw plus2 
+  in let v7 = fib7 << map2 saw v6 plus2
+  in let v2 = fib2 << map4 saw v6 saw saw plus4
   in let v9 = fib9 <<  v7
-  in fib4 << concat2 v13 v9 v2 plus3
+  in fib4 << map3 v13 v9 v2 plus3
 
 -- %runElab makeFunctionConcurrent (KerniganLinParitioner 5 10) "fibBenchConc9" Nat Nat $ \saw =>
 --   let v10 = fib10 << saw 
@@ -403,47 +403,47 @@ tmpBench8 saw =
 
 t9 = %runElab makeFunctionConcurrent' (KerniganLinParitioner 5 10) "fibBenchConc9" Nat Nat $ \saw =>
   let v10 = fib10 << saw 
-  in let v5 = fib5 << concat1 v10 saw plus2
+  in let v5 = fib5 << map2 v10 saw plus2
   in let v13 = fib13 << v5 
 
 
-  in let v6 = fib6 << concat1 saw saw plus2 
-  in let v7 = fib7 << concat1 saw v6 plus2
-  in let v2 = fib2 << concat3 saw v6 saw saw plus4
+  in let v6 = fib6 << map2 saw saw plus2 
+  in let v7 = fib7 << map2 saw v6 plus2
+  in let v2 = fib2 << map4 saw v6 saw saw plus4
   in let v9 = fib9 <<  v7
-  in let v4 = fib4 << concat2 v13 v9 v2 plus3
+  in let v4 = fib4 << map3 v13 v9 v2 plus3
   in fib12 << v4
 
 tmpBench9 : ConcurrentWrap Nat -> ConcurrentWrap Nat
 tmpBench9 saw =
   let v10 = fib10 << saw 
-  in let v5 = fib5 << concat1 v10 saw plus2
+  in let v5 = fib5 << map2 v10 saw plus2
   in let v13 = fib13 << v5 
 
 
-  in let v6 = fib6 << concat1 saw saw plus2 
-  in let v7 = fib7 << concat1 saw v6 plus2
-  in let v2 = fib2 << concat3 saw v6 saw saw plus4
+  in let v6 = fib6 << map2 saw saw plus2 
+  in let v7 = fib7 << map2 saw v6 plus2
+  in let v2 = fib2 << map4 saw v6 saw saw plus4
   in let v9 = fib9 <<  v7
-  in let v4 = fib4 << concat2 v13 v9 v2 plus3
+  in let v4 = fib4 << map3 v13 v9 v2 plus3
   in fib12 << v4
 
--- %runElab makeFunctionConcurrent (KerniganLinParitioner 5 15) "fibBenchConc11" Nat Nat $ \saw =>
---   let v11 = fib11 <<  saw 
---   in let v2 = fib2 <<  v11 
---   in let v0 = fib0 <<  v2 
---   in let v4 = fib4 <<  v0 
+t30 = %runElab makeFunctionConcurrent' (KerniganLinParitioner 5 15) "fibBenchConc11" Nat Nat $ \saw =>
+  let v11 = fib11 <<  saw 
+  in let v2 = fib2 <<  v11 
+  in let v0 = fib0 <<  v2 
+  in let v4 = fib4 <<  v0 
 
---   in let v13 = fib13 << concat2 v4 saw saw plus3
---   in let v12 = fib12 <<  v13 
---   in let v14 = fib14 <<  v12 
+  in let v13 = fib13 << map3 v4 saw saw plus3
+  in let v12 = fib12 <<  v13 
+  in let v14 = fib14 <<  v12 
 
 
---   in let v5 = fib5 <<  saw 
---   in let v1 = fib1 << concat1 v5 saw plus2
---   in let v10 = fib10 <<  v1 
+  in let v5 = fib5 <<  saw 
+  in let v1 = fib1 << map2 v5 saw plus2
+  in let v10 = fib10 <<  v1 
 
---   in id <<  concat2 v14 v10 v4 plus3
+  in id <<  map3 v14 v10 v4 plus3
 
 tmpBench11 : ConcurrentWrap Nat -> ConcurrentWrap Nat
 tmpBench11 saw = 
@@ -452,22 +452,22 @@ tmpBench11 saw =
   in let v0 = fib0 <<  v2 
   in let v4 = fib4 <<  v0 
 
-  in let v13 = fib13 << concat2 v4 saw saw plus3
+  in let v13 = fib13 << map3 v4 saw saw plus3
   in let v12 = fib12 <<  v13 
   in let v14 = fib14 <<  v12 
 
 
   in let v5 = fib5 <<  saw 
-  in let v1 = fib1 << concat1 v5 saw plus2
+  in let v1 = fib1 << map2 v5 saw plus2
   in let v10 = fib10 <<  v1 
 
-  in id <<  concat2 v14 v10 v4 plus3
+  in id <<  map3 v14 v10 v4 plus3
 
 fibBenchSmall : ConcurrentWrap Nat -> ConcurrentWrap Nat
 fibBenchSmall saw =
-  let v0 = fib << concat1 saw saw (+)
+  let v0 = fib << map2 saw saw (+)
   in let v1 = fib << v0
-  in let v2 = fib << concat1 v1 saw (+)
+  in let v2 = fib << map2 v1 saw (+)
   in let v9 = fib << v2
   in let v10 = fib << v9
 
@@ -476,15 +476,15 @@ fibBenchSmall saw =
   in let v11 = fib << v7
 
   in let v19 = fib << saw
-  in let v14 = fib << concat1 v1 v19 (+)
+  in let v14 = fib << map2 v1 v19 (+)
 
   in let v15 = fib << saw
   in let v13 = fib << v15
-  in let v17 = fib << concat4 v12 v13 v15 saw v19 plus5
+  in let v17 = fib << map5 v12 v13 v15 saw v19 plus5
   in let v3 = fib << v17
   in let v16 = fib << v3
 
-  in id << concat4 v3 v10 v11 v14 v16 plus5
+  in id << map5 v3 v10 v11 v14 v16 plus5
 
 fibBenchOrigin : Nat -> Nat
 fibBenchOrigin saw = do
@@ -549,106 +549,110 @@ fibBenchOrigin saw = do
                     let v15 = fib $ v19 + v20 + v24 + v30 + v34 + v35 + v36 + v38
                     v15
 
-t30 = %runElab makeFunctionConcurrent' (KerniganLinParitioner 40 40) "fibBenchConc30" Nat Nat $ \saw =>
-                    let v0 = fib0 << concat1 saw saw plus2
+-- t30 = %runElab makeFunctionConcurrent' (KerniganLinParitioner 40 40) "fibBenchConc30" Nat Nat $ \saw =>
+--                     let v0 = fib0 << concat1 saw saw plus2
 
-                    in let v9 = fib1 << saw
+--                     in let v9 = fib1 << saw
 
-                    in let v7 = fib2 << saw
+--                     in let v7 = fib2 << saw
 
-                    in let v32 = fib3 << concat1 saw saw plus2
+--                     in let v32 = fib3 << concat1 saw saw plus2
 
-                    in let v21 = fib4 << concat1 v7 saw plus2
+--                     in let v21 = fib4 << concat1 v7 saw plus2
 
-                    in let v34 = fib5 << concat2 v0 v21 v32 plus3
+--                     in let v34 = fib5 << concat2 v0 v21 v32 plus3
 
-                    in let v37 = fib6 << v34
+--                     in let v37 = fib6 << v34
 
-                    in let v30 = fib7 << concat1 saw v37 plus2
+--                     in let v30 = fib7 << concat1 saw v37 plus2
 
-                    in let v27 = fib8 << v21
+--                     in let v27 = fib8 << v21
 
-                    in let v8 = fib9 << concat1 v0 saw plus2
+--                     in let v8 = fib9 << concat1 v0 saw plus2
 
-                    in let v6 = fib10 << concat1 v8 v27 plus2
+--                     in let v6 = fib10 << concat1 v8 v27 plus2
 
-                    in let v25 = fib11 << concat2 v6 saw saw plus3
+--                     in let v25 = fib11 << concat2 v6 saw saw plus3
 
-                    in let v39 = fib12 << saw
+--                     in let v39 = fib12 << saw
 
-                    in let v13 = fib13 << concat1 v25 v9 plus2
+--                     in let v13 = fib13 << concat1 v25 v9 plus2
 
-                    in let v22 = fib14 << concat1 v13 v39 plus2
+--                     in let v22 = fib14 << concat1 v13 v39 plus2
 
-                    in let v1 = fib15 << v22
+--                     in let v1 = fib15 << v22
 
-                    in let v3 = fib16 << concat1 v1 saw plus2
+--                     in let v3 = fib16 << concat1 v1 saw plus2
 
-                    in let v36 = fib17  << concat2 v25 saw saw plus3
+--                     in let v36 = fib17  << concat2 v25 saw saw plus3
 
-                    in let v23 = fib18  << concat1 v3 saw plus2
+--                     in let v23 = fib18  << concat1 v3 saw plus2
 
-                    in let v2 = fib19 << v23
+--                     in let v2 = fib19 << v23
 
-                    in let v14 = fib20 << v2
+--                     in let v14 = fib20 << v2
 
-                    in let v38 = fib21 << v3
+--                     in let v38 = fib21 << v3
 
-                    in let v28 = fib22 << v14
+--                     in let v28 = fib22 << v14
 
-                    in let v18 = fib23 << v28
+--                     in let v18 = fib23 << v28
 
-                    in let v24 = fib24 << v18
+--                     in let v24 = fib24 << v18
 
-                    in let v19 = fib25 << concat1 saw v18 plus2
+--                     in let v19 = fib25 << concat1 saw v18 plus2
 
-                    in let v26 = fib26 << concat1 v13 saw plus2
+--                     in let v26 = fib26 << concat1 v13 saw plus2
 
-                    in let v20 = fib27 << v26
+--                     in let v20 = fib27 << v26
 
-                    in let v35 = fib28 << v26
+--                     in let v35 = fib28 << v26
 
-                    in id << concat7 v19 v20 v24 v30 v34 v35 v36 v38 plus8
+--                     in id << concat7 v19 v20 v24 v30 v34 v35 v36 v38 plus8
+
+%runElab do
+  let d = def (name "testVar") [(var $ name "testVar") .= (var $ name "t30")]
+  declare $ pure d
 
 fibBenchRef : ConcurrentWrap Nat -> ConcurrentWrap Nat
 fibBenchRef saw =
-                    let v0 = fib0 << concat1 saw saw (+)
+                    let v0 = fib0 << map2 saw saw (+)
 
                     in let v9 = fib1 << saw
 
                     in let v7 = fib2 << saw
 
-                    in let v32 = fib3 << concat1 saw saw (*)
+                    in let v32 = fib3 << map2 saw saw (*)
 
-                    in let v21 = fib4 << concat1 v7 saw (+)
+                    in let v21 = fib4 << map2 v7 saw (+)
 
-                    in let v34 = fib5 << concat2 v0 v21 v32 plus3
+                    in let v34 = fib5 << map3 v0 v21 v32 plus3
 
                     in let v37 = fib6 << v34
 
-                    in let v30 = fib7 << concat1 saw v37 (+)
+                    in let v30 = fib7 << map2 saw v37 (+)
 
                     in let v27 = fib8 << v21
 
-                    in let v8 = fib9 << concat1 v0 saw (+)
+                    in let v8 = fib9 << map2 v0 saw (+)
 
-                    in let v6 = fib10 << concat1 v8 v27 (+)
+                    in let v6 = fib10 << map2 v8 v27 (+)
 
-                    in let v25 = fib11 << concat2 v6 saw saw plus3
+                    in let v25 = fib11 << map3 v6 saw saw plus3
 
                     in let v39 = fib12 << saw
 
-                    in let v13 = fib13 << concat1 v25 v9 (+)
+                    in let v13 = fib13 << map2 v25 v9 (+)
 
-                    in let v22 = fib14 << concat1 v13 v39 (+)
+                    in let v22 = fib14 << map2 v13 v39 (+)
 
                     in let v1 = fib15 << v22
 
-                    in let v3 = fib16 << concat1 v1 saw (+)
+                    in let v3 = fib16 << map2 v1 saw (+)
 
-                    in let v36 = fib17  << concat2 v25 saw saw plus3
+                    in let v36 = fib17  << map3 v25 saw saw plus3
 
-                    in let v23 = fib18  << concat1 v3 saw (+)
+                    in let v23 = fib18  << map2 v3 saw (+)
 
                     in let v2 = fib19 << v23
 
@@ -662,15 +666,15 @@ fibBenchRef saw =
 
                     in let v24 = fib24 << v18
 
-                    in let v19 = fib25 << concat1 saw v18 (+)
+                    in let v19 = fib25 << map2 saw v18 (+)
 
-                    in let v26 = fib26 << concat1 v13 saw (+)
+                    in let v26 = fib26 << map2 v13 saw (+)
 
                     in let v20 = fib27 << v26
 
                     in let v35 = fib28 << v26
 
-                    in id << concat7 v19 v20 v24 v30 v34 v35 v36 v38 plus8
+                    in id << map8 v19 v20 v24 v30 v34 v35 v36 v38 plus8
 
 
 
